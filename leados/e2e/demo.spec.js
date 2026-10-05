@@ -250,7 +250,9 @@ test('pillar counts add up to what is underneath', async ({ page }) => {
   const p = panel(page);
   await p.getByRole('button', { name: 'Your pillars' }).click();
   for (const row of await p.getByTestId('pillar-row').all()) {
-    const total = Number((await row.getByTestId('pillar-count').innerText()).match(/\d+/)[0]);
+    // A pillar at zero shows "Next: ..." or nothing instead of a count; its parts must then sum to 0.
+    const countEl = row.getByTestId('pillar-count');
+    const total = (await countEl.count()) ? Number((await countEl.innerText()).match(/\d+/)[0]) : 0;
     await row.getByText('What’s underneath').click();
     const parts = (await row.getByTestId('system-count').allInnerTexts()).map((t) => Number(t.match(/\d+/)[0]));
     expect(parts).toHaveLength(2);
