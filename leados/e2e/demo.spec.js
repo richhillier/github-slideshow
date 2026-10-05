@@ -259,3 +259,47 @@ test('pillar counts add up to what is underneath', async ({ page }) => {
   await expect(p.getByTestId('pillar-row').filter({ hasText: 'Hold the Standard' }).getByTestId('pillar-count')).not.toHaveText(/^0/);
   await expectCleanManagerUi(page);
 });
+
+test('no pillar ever shows "0 this week"; an empty pillar shows what is next today', async ({ page }) => {
+  const p = panel(page);
+  await p.getByRole('button', { name: 'Your pillars' }).click();
+  for (const t of await p.getByTestId('pillar-row').allInnerTexts()) expect(t).not.toMatch(/\b0 this week/);
+  await expect(p.getByTestId('pillar-row').filter({ hasText: 'Sustain & Grow' })).toContainText('Next: Career chat at 14:30');
+});
+
+test('sparklines bridge a missing week with a dashed segment, never a dangling line', async ({ page }) => {
+  const p = panel(page);
+  await p.getByRole('button', { name: 'Your pillars' }).click();
+  const sg = p.getByTestId('pillar-row').filter({ hasText: 'Sustain & Grow' });
+  await expect(sg.locator('svg.spark line.gap')).toHaveCount(1);
+});
+
+test('pillar card at 390px: name, count line and sparkline do not overlap', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  const p = panel(page);
+  await p.getByRole('button', { name: 'Your pillars' }).click();
+  const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  for (const row of await p.getByTestId('pillar-row').all()) {
+    const name = await row.locator('.pname').boundingBox();
+    const line = await row.getByTestId('pillar-line').boundingBox();
+    const spark = await row.locator('svg.spark').boundingBox();
+    expect(overlap(name, line)).toBe(false);
+    expect(overlap(name, spark)).toBe(false);
+    if (line.width > 0) expect(overlap(line, spark)).toBe(false);
+    expect(spark.x + spark.width).toBeLessThanOrEqual(390);
+  }
+});
+
+test('HR view: manager-said pillar trend, team-saw placeholder, nothing individual', async ({ page }) => {
+  await page.getByRole('button', { name: 'HR dashboard' }).click();
+  const hr = page.getByRole('main', { name: 'HR dashboard' });
+  const said = hr.getByRole('region', { name: 'How managers rate themselves' });
+  await expect(said).toContainText('Manager-said');
+  await expect(said.getByTestId('cohort-line')).toHaveCount(5);
+  await expect(said).toContainText(/fewer than 5 managers/);
+  const saw = hr.getByRole('region', { name: 'Team-saw' });
+  await expect(saw).toContainText('Team-saw: coming next. Short pulse from each manager’s team, compared pillar by pillar.');
+  expect(await saw.innerText()).not.toMatch(/\d/);
+  await expect(hr.getByRole('region', { name: 'What this view never shows' })).toContainText('Any individual manager’s self-ratings');
+});

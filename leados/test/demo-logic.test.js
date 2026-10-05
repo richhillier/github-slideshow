@@ -280,3 +280,68 @@ test('the Claude prep prompt asks questions only and requires one about the pers
   assert.match(p, /ORG/);
   assert.doesNotMatch(L.prepPrompt(marcus, { orgBlock: 'ORG', depth: 'starter' }), /keep the person question/i);
 });
+
+// ---- pass 2: counts, next-up, copy, sparklines, cohort ratings -------------------
+
+test('Hold the Standard counts difficult moments plus feedback follow-ups', () => {
+  const s = L.weekSummary(week, today, {}, '11:20');
+  const difficult = s.moments.filter((m) => m.type === 'difficult').length;
+  assert.equal(L.pillarWeekCounts(s, {})['hold-standard'], difficult + L.feedbackMoments(s).length);
+});
+
+test('pillarNextUp: the next thing on today’s calendar for a pillar, or the look-back', () => {
+  const events = [
+    { id: 'sam', start: '11:00', end: '11:30', title: '1:1 Jordan / Sam', type: 'one_to_one' },
+    { id: 'aisha', start: '14:30', end: '15:00', title: 'Career chat: Aisha', type: 'career' },
+    { id: 'wrap', start: '15:30', end: '16:00', title: 'Weekly wrap-up', type: 'planning' },
+  ];
+  assert.deepEqual(L.pillarNextUp('sustain-grow', events, '11:20', { lookbackAt: '15:30' }), { title: 'Career chat', time: '14:30' });
+  assert.deepEqual(L.pillarNextUp('sustain-grow', events, '15:00', { lookbackAt: '15:30' }), { title: 'Look-back', time: '15:30' });
+  assert.equal(L.pillarNextUp('sustain-grow', events, '15:00', { lookbackAt: '15:30', lookbackSaved: true }), null);
+  assert.equal(L.pillarNextUp('develop-people', events, '11:20'), null, 'Sam has already started');
+  assert.deepEqual(L.pillarNextUp('set-standard', events, '11:20'), { title: 'Weekly wrap-up', time: '15:30' });
+});
+
+test('pillarCountLine never says "0 this week"', () => {
+  assert.equal(L.pillarCountLine(3, null), '3 this week');
+  assert.equal(L.pillarCountLine(1, { title: 'Look-back', time: '15:30' }), '1 this week');
+  assert.equal(L.pillarCountLine(0, { title: 'Career chat', time: '14:30' }), 'Next: Career chat at 14:30');
+  assert.equal(L.pillarCountLine(0, null), '');
+});
+
+test('reflection copy: once, twice, then "3 times"', () => {
+  const s = (n) => ({ hard: [], open: [], captured: Array.from({ length: n }, () => ({ title: 'CX team stand-up', note: 'Ran over again.' })) });
+  const line = (n) => L.reflectionQuestions(s(n), 'Short stand-ups').find((q) => q.includes('Short stand-ups'));
+  assert.match(line(1), /ran over once this week/);
+  assert.match(line(2), /ran over twice this week/);
+  assert.match(line(3), /ran over 3 times this week/);
+  assert.doesNotMatch(line(0), /ran over/);
+});
+
+test('sparkSegments: solid between neighbours, dashed across a gap, never a dangling line', () => {
+  assert.deepEqual(L.sparkSegments([2, 2, null, 3]), { points: [0, 1, 3], solid: [[0, 1]], dashed: [[1, 3]] });
+  assert.deepEqual(L.sparkSegments([null, 3, 4, null]), { points: [1, 2], solid: [[1, 2]], dashed: [] });
+  assert.deepEqual(L.sparkSegments([3, null, null, null]), { points: [0], solid: [], dashed: [] });
+  assert.deepEqual(L.sparkSegments([1, 2, 3]), { points: [0, 1, 2], solid: [[0, 1], [1, 2]], dashed: [] });
+});
+
+test('cohortSelfRatings: averages per pillar per week, hiding weeks with fewer than 5 ratings', () => {
+  const weeks = [
+    { week: 1, ratings: { 'hold-standard': [2, 2, 3, 3, 2], 'sustain-grow': [3, 4, 2] } },
+    { week: 2, ratings: { 'hold-standard': [3, 3, 3, 3, 3, 3], 'sustain-grow': [3, 3, 4, 4] } },
+  ];
+  const out = L.cohortSelfRatings(weeks, { minRaters: 5 });
+  assert.deepEqual(out['hold-standard'], [{ week: 1, avg: 2.4, n: 5 }, { week: 2, avg: 3, n: 6 }]);
+  assert.deepEqual(out['sustain-grow'], [{ week: 1, avg: null, n: 3 }, { week: 2, avg: null, n: 4 }]);
+  // The demo manager's saved look-back joins the cohort; a fifth rating makes the week visible.
+  const withMe = L.cohortSelfRatings(weeks, { minRaters: 5, extra: { week: 2, scores: { 'sustain-grow': 5 } } });
+  assert.deepEqual(withMe['sustain-grow'][1], { week: 2, avg: 3.8, n: 5 });
+  assert.equal(weeks[1].ratings['sustain-grow'].length, 4, 'input is not mutated');
+});
+
+test('scenario cohort: five pilot weeks for every pillar, with at least one thin week to hide', () => {
+  for (const t of L.TIERS) assert.equal(SC.COHORT_RATINGS.filter((w) => w.ratings[t.id]).length, 5, t.id);
+  const out = L.cohortSelfRatings(SC.COHORT_RATINGS, { minRaters: 5 });
+  assert.ok(Object.values(out).flat().some((p) => p.avg === null), 'a hidden week exists to show the footnote');
+  for (const p of Object.values(out).flat()) if (p.avg !== null) assert.ok(p.avg >= 1 && p.avg <= 5);
+});
