@@ -1,0 +1,871 @@
+<title>LeadOS Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>document.documentElement.lang = "en-GB";</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<style>
+/* Layout: a calendar web app (top bar, sidebar, week grid, add-on rail) with LeadOS in the add-on side panel.
+   Phone width: one day column, LeadOS stacked below it. The panel follows add-on card conventions. */
+:root {
+  --bg: #ffffff;
+  --chrome: #f8fafd;
+  --ink: #1f1f1f;
+  --ink-2: #444746;
+  --muted: #5f6368;
+  --line: #dde3ea;
+  --line-soft: #eef1f5;
+  --today: #0b57d0;
+  --today-ink: #ffffff;
+  --now: #c5221f;
+  --ev-blue-bg: #d3e3fd;   --ev-blue-ink: #041e49;   --ev-blue-bar: #0b57d0;
+  --ev-sage-bg: #d5ecdc;   --ev-sage-ink: #0f3d1f;   --ev-sage-bar: #188038;
+  --ev-grey-bg: #e3e6ea;   --ev-grey-ink: #202124;   --ev-grey-bar: #5f6368;
+  --ev-past: 0.62;
+  --brand: #3446c8;
+  --brand-soft: #e8ebfb;
+  --brand-ink: #ffffff;
+  --good: #146c2e; --good-bg: #e6f4ea;
+  --warn: #8a5a00; --warn-bg: #fdf0d5;
+  --bad: #b3261e;  --bad-bg: #fce8e6;
+  --t-lead-yourself: #4a5d73; --t-set-standard: #2f55b4; --t-develop-people: #1f7a4d; --t-hold-standard: #3446c8; --t-grow-sustain: #6b42b8;
+  --font: "Roboto", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --hour: 48px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131314; --chrome: #1b1b1c; --ink: #e3e3e3; --ink-2: #c4c7c5; --muted: #a8abaf; --line: #3a3d41; --line-soft: #26282b;
+    --today: #a8c7fa; --today-ink: #062e6f; --now: #f28b82;
+    --ev-blue-bg: #0e3a7a; --ev-blue-ink: #e8f0fe; --ev-blue-bar: #a8c7fa;
+    --ev-sage-bg: #0d4a24; --ev-sage-ink: #e6f4ea; --ev-sage-bar: #81c995;
+    --ev-grey-bg: #3c4043; --ev-grey-ink: #f1f3f4; --ev-grey-bar: #9aa0a6;
+    --brand: #aab4ff; --brand-soft: #262c52; --brand-ink: #10164a;
+    --good: #81c995; --good-bg: #0f2d19; --warn: #fdd663; --warn-bg: #3a2c05; --bad: #f2b8b5; --bad-bg: #3c1412;
+    --t-lead-yourself: #b5c3d4; --t-set-standard: #a8c1ff; --t-develop-people: #87d3a9; --t-hold-standard: #aab4ff; --t-grow-sustain: #cdb5ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131314; --chrome: #1b1b1c; --ink: #e3e3e3; --ink-2: #c4c7c5; --muted: #a8abaf; --line: #3a3d41; --line-soft: #26282b;
+  --today: #a8c7fa; --today-ink: #062e6f; --now: #f28b82;
+  --ev-blue-bg: #0e3a7a; --ev-blue-ink: #e8f0fe; --ev-blue-bar: #a8c7fa;
+  --ev-sage-bg: #0d4a24; --ev-sage-ink: #e6f4ea; --ev-sage-bar: #81c995;
+  --ev-grey-bg: #3c4043; --ev-grey-ink: #f1f3f4; --ev-grey-bar: #9aa0a6;
+  --brand: #aab4ff; --brand-soft: #262c52; --brand-ink: #10164a;
+  --good: #81c995; --good-bg: #0f2d19; --warn: #fdd663; --warn-bg: #3a2c05; --bad: #f2b8b5; --bad-bg: #3c1412;
+  --t-lead-yourself: #b5c3d4; --t-set-standard: #a8c1ff; --t-develop-people: #87d3a9; --t-hold-standard: #aab4ff; --t-grow-sustain: #cdb5ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--today); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---- demo bar (outside the calendar) ---- */
+.demo-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between;
+  padding: 8px 16px; background: var(--brand); color: var(--brand-ink); font-size: 13px;
+}
+.demo-bar .tag { font-weight: 500; }
+.demo-bar .tag span { opacity: .9; font-weight: 400; }
+.demo-bar .group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pill { border: 1px solid color-mix(in srgb, var(--brand-ink) 45%, transparent); background: transparent; color: var(--brand-ink); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.pill[aria-pressed="true"] { background: var(--brand-ink); color: var(--brand); font-weight: 500; }
+
+/* ---- calendar chrome ---- */
+.cal { display: flex; flex-direction: column; height: calc(100% - 46px); min-height: 560px; background: var(--chrome); }
+.gc-top { display: flex; align-items: center; gap: 12px; padding: 8px 16px; min-height: 60px; }
+.gc-top .menu { border: 0; background: none; border-radius: 50%; width: 40px; height: 40px; display: grid; place-items: center; color: var(--ink-2); }
+.gc-logo { display: flex; align-items: center; gap: 8px; font-size: 22px; color: var(--ink-2); margin-right: 24px; }
+.gc-logo .mark { width: 32px; height: 32px; border-radius: 6px; border: 2px solid var(--ink-2); display: grid; place-items: center; font-size: 13px; font-weight: 700; position: relative; }
+.gc-logo .mark::before { content: ""; position: absolute; top: 5px; left: 3px; right: 3px; height: 2px; background: var(--ink-2); }
+.btn-outline { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 18px; font-weight: 500; }
+.nav-arrows { display: flex; gap: 2px; }
+.nav-arrows button { border: 0; background: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-2); }
+.gc-title { font-size: 22px; color: var(--ink); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gc-top .right { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: #7b5ea7; color: #fff; display: grid; place-items: center; font-weight: 500; font-size: 13px; }
+
+.gc-body { flex: 1; display: grid; grid-template-columns: 240px minmax(0, 1fr) auto 56px; min-height: 0; }
+.gc-side { padding: 8px 12px 16px 16px; overflow: auto; }
+.create { display: flex; align-items: center; gap: 12px; border: 0; background: var(--bg); box-shadow: 0 1px 3px rgba(0,0,0,.18); border-radius: 16px; padding: 16px 20px 16px 16px; font-weight: 500; margin-bottom: 18px; }
+.mini { font-size: 12px; color: var(--ink-2); }
+.mini .head { display: flex; justify-content: space-between; padding: 0 4px 6px; font-weight: 500; }
+.mini table { width: 100%; border-collapse: collapse; text-align: center; }
+.mini th { font-weight: 500; color: var(--muted); padding: 4px 0; }
+.mini td { padding: 3px 0; }
+.mini td span { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; }
+.mini td.other { color: var(--muted); }
+.mini td.today span { background: var(--today); color: var(--today-ink); font-weight: 500; }
+.cals { margin-top: 20px; font-size: 13px; }
+.cals h2 { font-size: 13px; font-weight: 500; margin: 0 0 6px; }
+.cals label { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.cals .sw { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
+
+.gc-main { background: var(--bg); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; min-height: 0; min-width: 0; position: relative; }
+.week-head { display: grid; grid-template-columns: 56px repeat(var(--days), minmax(0, 1fr)); border-bottom: 1px solid var(--line); padding-top: 10px; }
+.week-head .tz { font-size: 10px; color: var(--muted); align-self: end; padding: 0 0 6px 8px; }
+.dayname { text-align: center; padding-bottom: 8px; }
+.dayname .dow { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.dayname .num { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; font-size: 24px; color: var(--ink-2); margin-top: 2px; }
+.dayname.is-today .dow { color: var(--today); }
+.dayname.is-today .num { background: var(--today); color: var(--today-ink); }
+.grid-scroll { flex: 1; overflow-y: auto; min-height: 0; position: relative; }
+.grid { display: grid; grid-template-columns: 56px repeat(var(--days), minmax(0, 1fr)); position: relative; }
+.hours { position: relative; }
+.hours div { height: var(--hour); font-size: 10px; color: var(--muted); text-align: right; padding-right: 8px; transform: translateY(-7px); }
+.day-col { position: relative; border-left: 1px solid var(--line); background-image: linear-gradient(var(--line-soft) 1px, transparent 1px); background-size: 100% var(--hour); }
+.cal-event {
+  position: absolute; border: 0; text-align: left; padding: 3px 6px 3px 8px; border-radius: 6px; overflow: hidden;
+  font-size: 12px; line-height: 1.25; display: flex; flex-direction: column; gap: 1px; box-shadow: inset 3px 0 0 var(--bar);
+  background: var(--bgc); color: var(--fg);
+}
+.cal-event .t { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-event .w { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-event.short { flex-direction: row; gap: 6px; align-items: center; padding-block: 1px; }
+.cal-event.past { --bgc: color-mix(in srgb, var(--ev) var(--past-mix, 55%), var(--bg)); }
+.cal-event.selected { box-shadow: inset 3px 0 0 var(--bar), 0 0 0 2px var(--today), 0 4px 10px rgba(0,0,0,.2); z-index: 3; }
+.ev-blue { --ev: var(--ev-blue-bg); --bgc: var(--ev-blue-bg); --fg: var(--ev-blue-ink); --bar: var(--ev-blue-bar); }
+.ev-sage { --ev: var(--ev-sage-bg); --bgc: var(--ev-sage-bg); --fg: var(--ev-sage-ink); --bar: var(--ev-sage-bar); }
+.ev-grey { --ev: var(--ev-grey-bg); --bgc: var(--ev-grey-bg); --fg: var(--ev-grey-ink); --bar: var(--ev-grey-bar); }
+.now-line { position: absolute; left: -1px; right: 0; height: 2px; background: var(--now); z-index: 4; pointer-events: none; }
+.now-line::before { content: ""; position: absolute; left: -6px; top: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--now); }
+
+/* event details popover (the calendar's own) */
+.popover {
+  position: absolute; z-index: 10; width: min(360px, calc(100% - 24px)); background: var(--bg); border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.28); padding: 8px 8px 16px 20px;
+}
+.popover .tools { display: flex; justify-content: flex-end; }
+.popover .tools button { border: 0; background: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-2); }
+.popover h2 { font-size: 20px; font-weight: 400; margin: 0 12px 2px 0; display: flex; gap: 12px; align-items: flex-start; }
+.popover h2::before { content: ""; width: 14px; height: 14px; border-radius: 4px; background: var(--bar); margin-top: 7px; flex: none; }
+.popover p { margin: 0 0 6px 26px; color: var(--ink-2); }
+.popover .addon-hint { margin-top: 10px; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+
+/* add-on rail */
+.gc-rail { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 12px; border-left: 1px solid var(--line); }
+.rail-btn { width: 40px; height: 40px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--muted); position: relative; }
+.rail-btn.on { background: var(--brand-soft); color: var(--brand); }
+.rail-sep { width: 20px; height: 1px; background: var(--line); }
+
+/* ---- the LeadOS add-on panel (card conventions) ---- */
+.addon { width: 340px; background: var(--bg); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.addon-head { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.addon-head .back { border: 0; background: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-2); }
+.addon-head .name { font-size: 16px; font-weight: 500; flex: 1; }
+.logo { width: 24px; height: 24px; flex: none; }
+.addon-body { flex: 1; overflow-y: auto; padding: 0 0 24px; scroll-behavior: smooth; }
+.card-head { padding: 16px 16px 4px; }
+.card-head h2 { font-size: 18px; font-weight: 500; margin: 0; line-height: 1.3; }
+.card-head .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.section { padding: 12px 16px; border-bottom: 1px solid var(--line-soft); display: grid; gap: 10px; }
+.section:last-child { border-bottom: 0; }
+.section h3 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 0; letter-spacing: .02em; }
+.dt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; }
+.dt .top { font-size: 12px; color: var(--muted); grid-column: 2; }
+.dt .text { grid-column: 2; }
+.dt .bottom { grid-column: 2; font-size: 12px; color: var(--muted); }
+.dt .start { grid-row: 1 / span 3; color: var(--muted); }
+.dt .end { grid-column: 3; grid-row: 1 / span 3; }
+.row-btn { border: 0; background: none; text-align: left; padding: 8px 8px; margin: 0 -8px; border-radius: 8px; width: calc(100% + 16px); }
+.row-btn:hover { background: var(--line-soft); }
+.privacy { font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: flex-start; }
+.privacy .ico { width: 16px; height: 16px; color: var(--good); margin-top: 1px; }
+.status { font-size: 11px; font-weight: 500; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.st-captured { background: var(--good-bg); color: var(--good); }
+.st-capture { background: var(--bad-bg); color: var(--bad); }
+.st-next { background: var(--warn-bg); color: var(--warn); }
+.st-ready, .st-now { background: var(--line-soft); color: var(--ink-2); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--bg); color: var(--brand); border-radius: 999px; padding: 7px 14px; font-weight: 500; font-size: 13px; }
+.btn.filled { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.btn.text { border-color: transparent; padding-inline: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg .btn { color: var(--ink); padding: 8px 6px; }
+.seg .btn[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.focus-line { font-weight: 500; margin: 0; }
+.qs { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.context { border-left: 3px solid var(--line); padding-left: 10px; color: var(--ink-2); font-size: 13px; }
+.context q { font-style: italic; }
+.chip-sys { display: inline-block; font-size: 12px; font-weight: 500; color: var(--tier); background: color-mix(in srgb, var(--tier) 10%, var(--bg)); border: 1px solid color-mix(in srgb, var(--tier) 30%, var(--line)); border-radius: 6px; padding: 2px 8px; }
+.captured-flag { color: var(--good); font-weight: 500; font-size: 13px; }
+.thinking { color: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+.err { color: var(--bad); font-size: 13px; margin: 0; }
+textarea, .field input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; resize: vertical; }
+.field { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+.stats b { display: block; font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 11px; color: var(--muted); }
+.scale { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.scale .nm { font-size: 13px; }
+.scale .nm small { display: block; font-size: 11px; color: var(--tier); font-weight: 500; }
+.dots { display: flex; gap: 4px; }
+.dots label { position: relative; }
+.dots input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.dots span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dots input:checked + span { background: var(--tier); border-color: var(--tier); color: var(--bg); font-weight: 700; }
+.dots input:focus-visible + span { outline: 2px solid var(--today); outline-offset: 2px; }
+.week-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
+.week-list li { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.week-list em { grid-column: 2; color: var(--muted); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.well { background: var(--good); } .dot.mixed { background: var(--warn); } .dot.hard { background: var(--bad); }
+.stack-viz { display: grid; justify-items: center; gap: 4px; }
+.stack-viz button { width: var(--w); border-radius: 6px; padding: 5px 4px; font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--tier); background: color-mix(in srgb, var(--tier) 10%, var(--bg)); border: 1px solid color-mix(in srgb, var(--tier) 30%, var(--line)); }
+.tier { border-left: 3px solid var(--tier); padding-left: 12px; display: grid; gap: 6px; scroll-margin-top: 8px; }
+.tier .th { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.tier .th b { font-weight: 500; }
+.tier .th small { color: var(--tier); font-weight: 500; font-size: 11px; }
+.tier .rating { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sys { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: var(--chrome); }
+.sys .code { font-weight: 700; font-size: 12px; color: var(--tier); }
+.sys small { display: block; color: var(--muted); font-size: 11px; }
+.sys.locked { background: transparent; border: 1px dashed var(--line); }
+.badge { font-size: 11px; font-weight: 500; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.badge.on { background: var(--good-bg); color: var(--good); }
+.badge.off { background: var(--line-soft); color: var(--ink-2); }
+.t-lead-yourself { --tier: var(--t-lead-yourself); } .t-set-standard { --tier: var(--t-set-standard); }
+.t-develop-people { --tier: var(--t-develop-people); } .t-hold-standard { --tier: var(--t-hold-standard); }
+.t-grow-sustain { --tier: var(--t-grow-sustain); }
+.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 3px transparent; } }
+
+/* ---- demo script ---- */
+.script {
+  position: fixed; right: 16px; top: 54px; z-index: 30; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 72px); overflow: auto;
+  background: var(--bg); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.3); padding: 16px;
+}
+.script h2 { margin: 0 0 4px; font-size: 16px; font-weight: 500; }
+.script > p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.script ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: s; }
+.script li { counter-increment: s; }
+.script li button { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 12px 10px 42px; position: relative; }
+.script li button::before { content: counter(s); position: absolute; left: 12px; top: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.script li b { display: block; font-weight: 500; }
+.script li span { color: var(--muted); font-size: 12px; }
+.script .close { position: absolute; right: 8px; top: 8px; border: 0; background: none; width: 32px; height: 32px; border-radius: 50%; color: var(--ink-2); display: grid; place-items: center; }
+
+/* ---- HR dashboard ---- */
+.hr { max-width: 1080px; margin: 0 auto; padding: 24px 16px 56px; display: grid; gap: 18px; }
+.hr h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 500; margin: 4px 0 0; }
+.hr .kicker { font-size: 12px; font-weight: 500; color: var(--brand); letter-spacing: .06em; text-transform: uppercase; }
+.banner { background: var(--brand-soft); border-radius: 12px; padding: 12px 14px; color: var(--ink); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.kpi { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; }
+.kpi b { font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.kpi span { color: var(--muted); }
+.kpi .target { color: var(--good); font-size: 12px; font-weight: 500; }
+.panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.panel h2 { font-size: 16px; font-weight: 500; margin: 0; }
+.two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+.chart-wrap { overflow-x: auto; }
+.chart text { font-size: 11px; fill: var(--muted); font-family: var(--font); }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.mixrow { display: grid; grid-template-columns: 9rem minmax(0, 1fr) 3rem; gap: 10px; align-items: center; }
+.mixrow .bar { height: 10px; border-radius: 5px; background: var(--line-soft); overflow: hidden; }
+.mixrow .bar span { display: block; height: 100%; background: var(--tier); }
+.mixrow .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.never { margin: 0; padding-left: 20px; color: var(--ink-2); display: grid; gap: 4px; }
+
+/* ---- responsive ---- */
+@media (max-width: 1180px) { .gc-body { grid-template-columns: minmax(0, 1fr) auto 56px; } .gc-side { display: none; } }
+@media (max-width: 760px) {
+  .cal { height: auto; min-height: 0; }
+  .gc-top { gap: 6px; padding: 6px 8px; }
+  .gc-logo { margin-right: 0; font-size: 18px; }
+  .gc-logo .label, .gc-top .right .btn-outline { display: none; }
+  .gc-title { font-size: 16px; }
+  .gc-body { grid-template-columns: minmax(0, 1fr); }
+  .gc-rail { display: none; }
+  .gc-main { border-radius: 0; }
+  .grid-scroll { height: 52vh; flex: none; }
+  .addon { width: auto; border-left: 0; border-top: 6px solid var(--chrome); }
+  .addon-body { overflow: visible; }
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .mixrow { grid-template-columns: 7.5rem minmax(0, 1fr) 2.6rem; }
+  .stats b { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="demo-bar">
+  <div class="tag">LeadOS <span>· prototype mockup of a calendar add-on, not a real calendar</span></div>
+  <div class="group" role="group" aria-label="View">
+    <button type="button" class="pill" data-view="manager" aria-pressed="true">Manager in Calendar</button>
+    <button type="button" class="pill" data-view="hr" aria-pressed="false">HR dashboard</button>
+  </div>
+  <div class="group">
+    <button type="button" class="pill" id="script-btn" aria-expanded="false" aria-controls="script">Demo script</button>
+    <button type="button" class="pill" id="reset">Reset demo</button>
+  </div>
+</div>
+
+<div class="cal" id="cal">
+  <header class="gc-top">
+    <button class="menu" type="button" aria-label="Main menu"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="gc-logo"><span class="mark" id="logo-day" aria-hidden="true"></span><span class="label">Calendar</span></div>
+    <button class="btn-outline" type="button" id="today-btn">Today</button>
+    <div class="nav-arrows"><button type="button" aria-label="Previous week"><svg class="ico" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button><button type="button" aria-label="Next week"><svg class="ico" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button></div>
+    <div class="gc-title" id="gc-title"></div>
+    <div class="right"><button class="btn-outline" type="button" id="view-label">Work week</button><span class="avatar" aria-label="Jordan Reid" role="img">JR</span></div>
+  </header>
+  <div class="gc-body">
+    <nav class="gc-side" aria-label="Calendar sidebar">
+      <button class="create" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create</button>
+      <div class="mini" id="mini"></div>
+      <div class="cals"><h2>My calendars</h2>
+        <label><span class="sw" style="background:var(--ev-blue-bar)"></span>Jordan Reid</label>
+        <label><span class="sw" style="background:var(--ev-sage-bar)"></span>Personal</label>
+        <label><span class="sw" style="background:var(--ev-grey-bar)"></span>Focus time</label>
+      </div>
+    </nav>
+    <section class="gc-main" aria-label="Week view">
+      <div class="week-head" id="week-head"></div>
+      <div class="grid-scroll" id="grid-scroll"><div class="grid" id="grid" data-testid="cal-grid"></div></div>
+      <div id="popover-host"></div>
+    </section>
+    <aside class="addon" aria-label="LeadOS" id="addon">
+      <div class="addon-head" id="addon-head"></div>
+      <div class="addon-body" id="addon-body"></div>
+    </aside>
+    <div class="gc-rail" aria-label="Add-ons">
+      <button class="rail-btn" type="button" aria-label="Tasks"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></button>
+      <button class="rail-btn" type="button" aria-label="Contacts"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5"/><path d="M5.5 19c1.2-3.2 3.6-4.5 6.5-4.5s5.3 1.3 6.5 4.5"/></svg></button>
+      <div class="rail-sep"></div>
+      <button class="rail-btn on" type="button" aria-label="LeadOS add-on" aria-pressed="true"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1.2" fill="var(--t-grow-sustain)"/><rect x="6" y="8.5" width="12" height="4" rx="1.2" fill="var(--t-hold-standard)"/><rect x="4" y="14" width="16" height="4" rx="1.2" fill="var(--t-develop-people)"/><rect x="2" y="19.5" width="20" height="2.5" rx="1" fill="var(--t-lead-yourself)"/></svg></button>
+      <button class="rail-btn" type="button" aria-label="Get add-ons"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<main class="hr" id="hr" aria-label="HR dashboard" hidden></main>
+
+<div class="script" id="script" role="dialog" aria-label="Demo script" hidden>
+  <button class="close" type="button" aria-label="Close demo script" data-close-script><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <h2>Demo script · 5 minutes</h2>
+  <p>Jordan Reid leads a 7-person support team. It's Friday, week 5 of the programme, 11:20. LeadOS lives in the calendar's side panel.</p>
+  <ol id="steps"></ol>
+</div>
+
+<script src="logic.js"></script>
+<script>
+(() => {
+  const L = window.LeadOSLogic;
+  const { TIERS, SYS, TYPES, RATING, NEXT, WEEKDAYS, esc } = L;
+  const PROGRAMME_WEEK = 5;
+  const NOW = '11:20';
+  const TODAY_IDX = 4;
+  const H0 = 8, H1 = 18;
+
+  // ------------------------------------------------------------ dates: the Friday of the current week
+  const real = new Date();
+  const monday = new Date(real.getFullYear(), real.getMonth(), real.getDate() - ((real.getDay() + 6) % 7));
+  const dayDate = (i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+  const fmt = (d, o) => d.toLocaleDateString('en-GB', o);
+  const FRIDAY = dayDate(TODAY_IDX);
+
+  // ------------------------------------------------------------ scenario: Jordan's calendar this week
+  const ORG = {
+    name: 'Northwind Logistics (demo company)',
+    values: ['Own it end to end', 'Say the hard thing kindly', 'Customers feel the difference'],
+    standards: [
+      'Every direct report has a 1:1 at least every two weeks.',
+      'Feedback is given within 48 hours of the moment.',
+      'Performance concerns are raised early, with specific examples, and shared with the HR business partner before any formal step.',
+      'Team meetings end with an owner and a date for every action.',
+    ],
+  };
+  const E = (id, day, start, end, title, n, type, colour = 'blue', extra = {}) => ({ id, day, start, end, title, n, type, colour, ...extra });
+  const EVENTS = [
+    E('mon-plan', 0, '08:30', '09:00', 'Plan the week', 1, 'planning', 'grey'),
+    E('mon-standup', 0, '09:30', '09:45', 'CX team stand-up', 8, 'team'),
+    E('mon-priya', 0, '11:00', '11:30', '1:1 Jordan / Priya', 2, 'one_to_one'),
+    E('mon-lunch', 0, '13:00', '13:45', 'Lunch', 1, null, 'sage'),
+    E('mon-ops', 0, '14:00', '15:00', 'Ops review with Facilities', 5, null),
+    E('mon-marcus', 0, '15:30', '16:00', '1:1 Jordan / Marcus', 2, 'one_to_one'),
+    E('tue-standup', 1, '09:30', '09:45', 'CX team stand-up', 8, 'team'),
+    E('tue-q4', 1, '10:00', '11:00', 'Q4 priorities planning block', 1, 'planning', 'grey'),
+    E('tue-aisha', 1, '11:30', '12:00', '1:1 Jordan / Aisha', 2, 'one_to_one'),
+    E('tue-lunch', 1, '13:00', '13:45', 'Lunch', 1, null, 'sage'),
+    E('tue-dan', 1, '14:00', '14:30', 'Attendance concerns: Dan', 2, 'difficult'),
+    E('tue-rota', 1, '16:00', '16:45', 'Rota review with WFM', 4, null),
+    E('wed-standup', 2, '09:30', '09:45', 'CX team stand-up', 8, 'team'),
+    E('wed-tom', 2, '10:00', '10:30', '1:1 Jordan / Tom', 2, 'one_to_one'),
+    E('wed-lunch', 2, '13:00', '13:45', 'Lunch', 1, null, 'sage'),
+    E('wed-retro', 2, '13:45', '14:45', 'Team retro', 8, 'team'),
+    E('wed-focus', 2, '15:00', '16:30', 'Focus time', 1, 'planning', 'grey'),
+    E('thu-interview', 3, '09:00', '09:45', 'Interview: CX Advisor', 3, null),
+    E('thu-standup', 3, '09:30', '09:45', 'CX team stand-up', 8, 'team'),
+    E('thu-ellie', 3, '11:00', '11:30', '1:1 Jordan / Ellie', 2, 'one_to_one'),
+    E('thu-lunch', 3, '13:00', '13:45', 'Lunch', 1, null, 'sage'),
+    E('thu-head', 3, '14:00', '14:30', 'Catch-up with Head of CX', 2, 'one_to_one'),
+    E('standup', 4, '09:30', '09:45', 'CX team stand-up', 8, 'team', 'blue', {
+      prep: { focus: 'Decisions and blockers, not status.', questions: [
+        'What is the one decision or blocker this stand-up must move forward?',
+        'Stand-ups ran over twice this week. What will you cut to keep this one to 15 minutes?',
+        'Who has been quiet lately, and how will you bring them in?'] } }),
+    E('sam', 4, '10:00', '10:30', '1:1 Jordan / Sam', 2, 'one_to_one', 'blue', {
+      context: 'Last 1:1 two weeks ago: went well, nothing to follow up.',
+      prep: { focus: 'Their agenda first: how they are, what is in their way, how they are growing.', questions: [
+        'What do you want Sam to leave this 1:1 feeling or knowing?',
+        'What have you noticed about Sam’s work since you last spoke that you haven’t said out loud?',
+        'What is one thing in Sam’s way that only you can remove?'] } }),
+    E('marcus', 4, '12:00', '12:30', 'Tough feedback: Marcus (missed SLAs)', 2, 'difficult', 'blue', {
+      context: 'Monday’s 1:1 with Marcus: mixed, marked to follow up. <q>Quiet, low energy. Did not get to SLAs.</q>',
+      prep: { focus: 'Say the hard thing kindly: specific, early and fair.', questions: [
+        'What is the one change Marcus must leave understanding, in a single sentence?',
+        'Which two missed SLAs will you use as examples, and are they facts rather than impressions?',
+        'On Monday he was quiet and low on energy. What might be going on that you haven’t asked about yet?'] } }),
+    E('lunch', 4, '13:00', '13:45', 'Lunch', 1, null, 'sage'),
+    E('aisha', 4, '14:30', '15:00', '1:1 Jordan / Aisha (follow-up)', 2, 'one_to_one', 'blue', {
+      context: 'Tuesday’s 1:1 with Aisha: mixed, marked to follow up. <q>Struggling with the late shift pattern.</q>',
+      prep: { focus: 'Close the loop you opened on Tuesday.', questions: [
+        'What did you commit to on Tuesday about the late shifts, and has it happened?',
+        'What would make the shift pattern workable for Aisha and fair for the rest of the team?',
+        'If nothing can change this month, how will you say so plainly?'] } }),
+    E('wrap', 4, '15:30', '16:00', 'Weekly wrap-up and plan next week', 1, 'planning', 'grey', {
+      prep: { focus: 'Protect next week’s time and decide what matters most.', questions: [
+        'If the team only got three things done next week, which three should they be?',
+        'Which of this week’s open follow-ups need a slot in next week’s calendar?',
+        'What are you saying yes to next week that you should drop or delay?'] } }),
+    E('vendor', 4, '16:30', '17:15', 'Vendor demo: new ticketing tool', 6, null),
+  ];
+  const byId = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+  const SEED_CAPTURES = {
+    'mon-plan': { rating: 'well', next: 'none' },
+    'mon-standup': { rating: 'mixed', next: 'revisit', note: 'Ran over again, too much status.' },
+    'mon-priya': { rating: 'well', next: 'follow_up', note: 'Wants to lead the chat-channel pilot.' },
+    'mon-marcus': { rating: 'mixed', next: 'follow_up', note: 'Quiet, low energy. Did not get to SLAs.' },
+    'tue-standup': { rating: 'well', next: 'none' },
+    'tue-q4': { rating: 'well', next: 'none' },
+    'tue-aisha': { rating: 'mixed', next: 'follow_up', note: 'Struggling with the late shift pattern.' },
+    'tue-dan': { rating: 'hard', next: 'follow_up', note: 'Stated the facts; he opened up about childcare. Speak to HRBP.' },
+    'wed-standup': { rating: 'mixed', next: 'none', note: 'Ran over again.' },
+    'wed-tom': { rating: 'well', next: 'none' },
+    'wed-retro': { rating: 'well', next: 'follow_up', note: 'Good energy; actions had no owners again.' },
+    'thu-ellie': { rating: 'well', next: 'none', note: 'Wants more customer escalations to learn from.' },
+    'thu-head': { rating: 'well', next: 'none' },
+    standup: { rating: 'well', next: 'none', note: 'Kept it to 15 minutes. First time this week.' },
+  };
+  const BASE_USES = { S0: 14, S1: 0, S2: 2, S3: 9, S4: 13, S5: 21, S6: 3, S7: 0, S8: 0, S9: 0 };
+  const SELF_HISTORY = { 'lead-yourself': [2, 2, 3, 3], 'set-standard': [2, 2, 3, 3], 'develop-people': [3, 3, 3, 4], 'hold-standard': [1, 2, 2, 2], 'grow-sustain': [2, 2, null, 3] };
+  const LAST_TRY = 'End stand-ups at 15 minutes and give every retro action an owner';
+  const HR_WEEKS = [{ w: 'Wk 1', active: 15, three: 9 }, { w: 'Wk 2', active: 18, three: 12 }, { w: 'Wk 3', active: 17, three: 13 }, { w: 'Wk 4', active: 19, three: 14 }, { w: 'Wk 5', active: 19, three: 14 }];
+
+  // ------------------------------------------------------------ state (per-viewer convenience only)
+  const KEY = 'leados-calendar-demo-v1';
+  const fresh = () => ({ view: 'manager', stack: [{ card: 'home' }], selected: null, captures: structuredClone(SEED_CAPTURES), energy: null, noteOpen: {}, lookback: { scores: {}, win: '', tryNext: '', saved: false } });
+  let S = fresh();
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && saved.captures) S = { ...fresh(), ...saved, stack: [{ card: 'home' }], selected: null };
+  } catch {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ captures: S.captures, energy: S.energy, lookback: S.lookback, view: S.view })); } catch {} };
+  const ai = {}; let aiReflect = null; let sample = null; let aiBlocked = false;
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const isPhone = () => matchMedia('(max-width: 760px)').matches;
+  const top = () => S.stack.at(-1);
+  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
+  function summary() {
+    const weekItems = EVENTS.filter((e) => e.day < TODAY_IDX && e.type).map((e) => ({ ...e, ...(S.captures[e.id] ?? {}) }));
+    const todays = EVENTS.filter((e) => e.day === TODAY_IDX);
+    return L.weekSummary(weekItems, todays, S.captures, NOW);
+  }
+  function status(e) {
+    if (e.day < TODAY_IDX) return L.isCaptured(S.captures[e.id]) ? 'captured' : 'capture';
+    if (L.isCaptured(S.captures[e.id])) return 'captured';
+    const st = L.momentStatus(e, NOW);
+    if (st === 'past') return 'capture';
+    if (st === 'now') return 'now';
+    return e.id === L.nextMomentId(EVENTS.filter((x) => x.day === TODAY_IDX), NOW) ? 'next' : 'ready';
+  }
+  const STATUS_LABEL = { captured: 'Captured', capture: 'Capture now', now: 'In progress', next: 'Up next', ready: 'Prep ready' };
+
+  // ------------------------------------------------------------ Claude (optional; hidden when unavailable)
+  if (window.claude?.use) window.claude.use('sample').then((s) => { sample = s; renderPanel(); }).catch(() => {});
+  const HIDE = ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'];
+  const aiCopy = (c) => ({ rate_limited: 'Claude is busy. Try again in a minute.', refused: 'Claude declined this one. The prep card above still works.', session_expired: 'Sign in to Claude again to use this.' })[c] || 'Couldn’t get questions from Claude. Try again.';
+  const orgBlock = () => `Organisation: ${ORG.name}, UK, about 850 people.\nValues: ${ORG.values.join('; ')}.\nManager standards:\n- ${ORG.standards.join('\n- ')}\nLeadership framework (LeadOS operating stack, five tiers, each enabling the next): ${TIERS.map((t) => `${t.tier} ${t.name} (${t.systems.map((s) => `${s.code} ${s.name}`).join(', ')})`).join('; ')}.`;
+
+  async function askPrep(e) {
+    ai[e.id] = { loading: true }; renderPanel();
+    const sys = SYS[TYPES[e.type].sys];
+    const prompt = `You write prep cards for LeadOS, a Google Calendar add-on that helps first-time and frontline managers lead well in moments already on their calendar. A prep card is read in the two minutes before a meeting.\n\nRules: ask questions; never write a script, talking points or words for the manager to say. Give one short focus line (under 15 words) and exactly three questions, each under 25 words, concrete to this moment. Use the organisation's values or standards, in their own words, only where they genuinely apply. Don't invent facts about anyone. British English. No emoji.\n\n${orgBlock()}\n\nMoment: ${TYPES[e.type].label}, feeds ${sys.code} ${sys.name}.\nCalendar title: ${e.title}\nTime: Friday ${e.start}–${e.end}. Attendees including the manager: ${e.n}.\n${e.context ? `From the manager's own earlier capture: ${e.context.replace(/<[^>]+>/g, '')}` : 'No earlier captures for this meeting.'}\n\nReply with only JSON: {"focus": "...", "questions": ["...", "...", "..."]}`;
+    try {
+      const out = await sample.json(prompt, { modelTier: 'quick', cache: false });
+      const qs = Array.isArray(out?.questions) ? out.questions.map(String).filter((q) => q.trim()).slice(0, 3) : [];
+      if (!out?.focus || qs.length < 2) throw { code: 'invalid_json' };
+      ai[e.id] = { focus: String(out.focus), questions: qs };
+    } catch (err) {
+      if (HIDE.includes(err?.code)) { aiBlocked = true; delete ai[e.id]; } else ai[e.id] = { error: aiCopy(err?.code) };
+    }
+    renderPanel();
+  }
+  async function askReflect() {
+    aiReflect = { loading: true }; renderPanel();
+    const s = summary();
+    const lines = s.captured.map((c) => `- ${WEEKDAYS[c.day]} ${c.title}: ${RATING[c.rating]}, next: ${NEXT[c.next] ?? 'not set'}${c.note ? `, note: "${c.note}"` : ''}`).join('\n');
+    const prompt = `You help a frontline manager reflect on their week in LeadOS. Ask questions only; never give advice, conclusions or a plan. The manager does the thinking.\n\n${orgBlock()}\n\nTheir captured moments this week:\n${lines}\nLast week they said they'd try: "${LAST_TRY}".\n\nSpot up to three patterns across the week and turn each into one reflective question under 30 words that names the specific moments. British English. No emoji.\nReply with only JSON: {"questions": ["...", "..."]}`;
+    try {
+      const out = await sample.json(prompt, { modelTier: 'quick', cache: false });
+      const qs = Array.isArray(out?.questions) ? out.questions.map(String).filter(Boolean).slice(0, 3) : [];
+      if (!qs.length) throw { code: 'invalid_json' };
+      aiReflect = { questions: qs };
+    } catch (err) {
+      if (HIDE.includes(err?.code)) { aiBlocked = true; aiReflect = null; } else aiReflect = { error: aiCopy(err?.code) };
+    }
+    renderPanel();
+  }
+
+  // ------------------------------------------------------------ calendar grid
+  function renderChrome() {
+    $('#gc-title').textContent = fmt(FRIDAY, { month: 'long', year: 'numeric' });
+    $('#logo-day').textContent = FRIDAY.getDate();
+    const first = new Date(FRIDAY.getFullYear(), FRIDAY.getMonth(), 1);
+    const start = new Date(first.getFullYear(), first.getMonth(), 1 - ((first.getDay() + 6) % 7));
+    let rows = '';
+    for (let w = 0; w < 6; w++) {
+      rows += '<tr>';
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
+        const cls = day.toDateString() === FRIDAY.toDateString() ? 'today' : day.getMonth() !== FRIDAY.getMonth() ? 'other' : '';
+        rows += `<td class="${cls}"><span>${day.getDate()}</span></td>`;
+      }
+      rows += '</tr>';
+    }
+    $('#mini').innerHTML = `<div class="head"><span>${fmt(FRIDAY, { month: 'long', year: 'numeric' })}</span></div>
+      <table aria-label="Mini month"><thead><tr>${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => `<th scope="col">${d}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  /** Greedy side-by-side columns for overlapping events within one day. */
+  function layoutDay(events) {
+    const sorted = [...events].sort((a, b) => toMin(a.start) - toMin(b.start));
+    const cols = [];
+    for (const e of sorted) {
+      let c = cols.findIndex((end) => end <= toMin(e.start));
+      if (c === -1) { c = cols.length; cols.push(0); }
+      cols[c] = toMin(e.end);
+      e._col = c;
+    }
+    for (const e of sorted) e._cols = sorted.filter((o) => toMin(o.start) < toMin(e.end) && toMin(o.end) > toMin(e.start)).reduce((m, o) => Math.max(m, o._col + 1), 1);
+    return sorted;
+  }
+
+  function renderGrid() {
+    const days = isPhone() ? [TODAY_IDX] : [0, 1, 2, 3, 4];
+    const hourPx = 48;
+    document.documentElement.style.setProperty('--days', days.length);
+    $('#week-head').style.setProperty('--days', days.length);
+    $('#grid').style.setProperty('--days', days.length);
+    $('#week-head').innerHTML = `<div class="tz">GMT+01</div>` + days.map((d) => {
+      const dt = dayDate(d);
+      return `<div class="dayname ${d === TODAY_IDX ? 'is-today' : ''}"><div class="dow">${fmt(dt, { weekday: 'short' })}</div><div class="num" ${d === TODAY_IDX ? 'aria-current="date"' : ''}>${dt.getDate()}</div></div>`;
+    }).join('');
+    const hours = Array.from({ length: H1 - H0 }, (_, i) => `<div>${i === 0 ? '' : `${String(H0 + i).padStart(2, '0')}:00`}</div>`).join('');
+    const cols = days.map((d) => {
+      const evs = layoutDay(EVENTS.filter((e) => e.day === d));
+      const blocks = evs.map((e) => {
+        const top = ((toMin(e.start) - H0 * 60) / 60) * hourPx;
+        const h = Math.max(((toMin(e.end) - toMin(e.start)) / 60) * hourPx - 2, 18);
+        const w = 100 / e._cols;
+        const past = d < TODAY_IDX || e.end <= NOW;
+        return `<button type="button" class="cal-event ev-${e.colour} ${past ? 'past' : ''} ${h < 34 ? 'short' : ''} ${S.selected === e.id ? 'selected' : ''}" data-testid="cal-event" data-event="${e.id}"
+          style="top:${top}px;height:${h}px;left:calc(${e._col * w}% + 2px);width:calc(${w}% - 6px)"
+          aria-label="${esc(e.title)}, ${fmt(dayDate(d), { weekday: 'long' })} ${e.start} to ${e.end}">
+          <span class="t">${esc(e.title)}</span><span class="w">${e.start} – ${e.end}</span></button>`;
+      }).join('');
+      const nowTop = ((toMin(NOW) - H0 * 60) / 60) * hourPx;
+      return `<div class="day-col" data-testid="day-col" style="height:${(H1 - H0) * hourPx}px">${blocks}${d === TODAY_IDX ? `<div class="now-line" data-testid="now-line" style="top:${nowTop}px" aria-hidden="true"></div>` : ''}</div>`;
+    }).join('');
+    $('#grid').innerHTML = `<div class="hours" aria-hidden="true">${hours}</div>${cols}`;
+  }
+
+  function renderPopover() {
+    const host = $('#popover-host');
+    const e = S.selected && byId[S.selected];
+    if (!e) { host.innerHTML = ''; return; }
+    const btn = $(`[data-event="${e.id}"]`);
+    const main = $('.gc-main').getBoundingClientRect();
+    const r = btn?.getBoundingClientRect();
+    let left = 12, topPx = 80;
+    if (r) {
+      const width = Math.min(360, main.width - 24);
+      left = r.right - main.left + 8;
+      if (left + width > main.width - 12) left = r.left - main.left - width - 8;
+      left = Math.max(12, Math.min(left, main.width - width - 12));
+      topPx = Math.max(8, Math.min(r.top - main.top, main.height - 220));
+    }
+    host.innerHTML = `<div class="popover ev-${e.colour}" role="dialog" aria-labelledby="pop-title" style="left:${left}px;top:${topPx}px">
+      <div class="tools"><button type="button" aria-label="Close" data-close-pop><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <h2 id="pop-title">${esc(e.title)}</h2>
+      <p>${fmt(dayDate(e.day), { weekday: 'long', day: 'numeric', month: 'long' })} · ${e.start} – ${e.end}</p>
+      <p>${e.n > 1 ? `${e.n} guests` : 'Just you'}</p>
+      <p class="addon-hint"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px"><rect x="8" y="3" width="8" height="4" rx="1.2" fill="var(--t-grow-sustain)"/><rect x="6" y="8.5" width="12" height="4" rx="1.2" fill="var(--t-hold-standard)"/><rect x="4" y="14" width="16" height="4" rx="1.2" fill="var(--t-develop-people)"/><rect x="2" y="19.5" width="20" height="2.5" rx="1" fill="var(--t-lead-yourself)"/></svg>LeadOS is showing this event in the side panel</p>
+    </div>`;
+  }
+
+  // ------------------------------------------------------------ the LeadOS add-on panel
+  const sysChip = (e) => { const s = SYS[TYPES[e.type].sys]; return `<span class="chip-sys t-${s.tier}">${s.code} · ${esc(s.name)}</span>`; };
+
+  function homeCard() {
+    const todays = EVENTS.filter((e) => e.day === TODAY_IDX && e.type);
+    return `<div class="card-head"><h2>Today’s moments</h2><div class="sub">${fmt(FRIDAY, { weekday: 'long', day: 'numeric', month: 'long' })} · Week ${PROGRAMME_WEEK}</div></div>
+      <div class="section"><div class="privacy"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.2 3 7.6 7 9 4-1.4 7-4.8 7-9V6z"/></svg><span>Reads your calendar: title, time and attendee count only. Never descriptions or notes.</span></div></div>
+      <div class="section t-lead-yourself" id="energy"><h3>S0 · Energy check-in</h3><div>How’s your energy going into today?</div>
+        <div class="seg" role="group" aria-label="Energy">${['Low', 'Steady', 'High'].map((v) => `<button type="button" class="btn" data-energy="${v}" aria-pressed="${S.energy === v}">${v}</button>`).join('')}</div>
+        ${S.energy === 'Low' ? '<div class="context">Low energy, with a hard conversation at 12:00. What could you move or drop this afternoon?</div>' : ''}</div>
+      <div class="section"><h3>${todays.length} moments on your calendar</h3>
+        ${todays.map((e) => { const st = status(e); return `<button type="button" class="row-btn dt" data-testid="moment-row" data-open="${e.id}">
+          <span class="top">${e.start} · ${esc(TYPES[e.type].label)}</span><span class="text">${esc(e.title)}</span><span class="end"><span class="status st-${st}">${STATUS_LABEL[st]}</span></span></button>`; }).join('')}
+      </div>
+      <div class="section"><div class="btns"><button type="button" class="btn filled" data-push="lookback">Friday look-back</button><button type="button" class="btn" data-push="systems">Your systems</button></div></div>`;
+  }
+
+  function prepSection(e) {
+    const a = ai[e.id];
+    const card = a?.questions ? a : e.prep;
+    return `<div class="section" id="prep"><h3>Before · 2 minutes${a?.questions ? ' · fresh from Claude' : ''}</h3>
+      ${e.context ? `<div class="context">${e.context}</div>` : ''}
+      ${a?.loading ? '<p class="thinking">Claude is writing questions for this moment…</p>' : card ? `<p class="focus-line">${esc(card.focus)}</p><ol class="qs">${card.questions.map((q) => `<li data-testid="prep-question">${esc(q)}</li>`).join('')}</ol>` : ''}
+      ${a?.error ? `<p class="err">${esc(a.error)}</p>` : ''}
+      ${sample && !aiBlocked && !a?.loading ? `<div class="btns"><button type="button" class="btn text" data-ask="${e.id}">${a?.questions ? 'Ask Claude again' : 'Fresh questions from Claude'}</button></div>` : ''}
+    </div>`;
+  }
+
+  function captureSection(e) {
+    const st = status(e);
+    if (st === 'next' || st === 'ready') return `<div class="section"><h3>After</h3><p class="sub" style="margin:0;color:var(--muted)">Capture opens at ${e.start}.</p></div>`;
+    const c = S.captures[e.id] ?? {};
+    const seg = (field, map, label) => `<div class="seg" role="group" aria-label="${label}">${Object.entries(map).map(([v, t]) =>
+      `<button type="button" class="btn" data-cap="${e.id}" data-f="${field}" data-v="${v}" aria-pressed="${c[field] === v}">${t}</button>`).join('')}</div>`;
+    const open = S.noteOpen[e.id] || c.note;
+    return `<div class="section" id="capture"><h3>After · how did it go? ${L.isCaptured(c) ? '<span class="captured-flag">Captured</span>' : ''}</h3>
+      ${seg('rating', RATING, 'How did it go')}${seg('next', NEXT, 'What next')}
+      ${open ? `<label class="field">Note (optional, only you see it)<textarea id="note-${e.id}" data-note="${e.id}" rows="2" maxlength="300">${esc(c.note)}</textarea></label>`
+        : `<div class="btns"><button type="button" class="btn text" data-opennote="${e.id}">Add a note</button></div>`}
+    </div>`;
+  }
+
+  function eventCard(e) {
+    const when = `${fmt(dayDate(e.day), { weekday: 'long' })} · ${e.start} – ${e.end}`;
+    if (!e.type) {
+      return `<div class="card-head"><h2>${esc(e.title)}</h2><div class="sub">${when}</div></div>
+        <div class="section"><div><b>Not a leadership moment</b></div><p style="margin:0;color:var(--ink-2)">LeadOS looks for 1:1s, team meetings, planning blocks and difficult conversations. It used this event’s title, time and attendee count to decide, and nothing else.</p></div>`;
+    }
+    return `<div class="card-head"><h2>${esc(e.title)}</h2><div class="sub">${when} · ${esc(TYPES[e.type].label)}</div></div>
+      <div class="section">${sysChip(e)}</div>
+      ${e.prep ? prepSection(e) : ''}
+      ${captureSection(e)}`;
+  }
+
+  function lookbackCard() {
+    const s = summary();
+    const qs = L.reflectionQuestions(s, LAST_TRY);
+    const lb = S.lookback;
+    const byDay = [0, 1, 2, 3, 4].map((d) => {
+      const items = s.captured.filter((m) => m.day === d);
+      return items.length ? `<div><h3 style="margin-bottom:4px">${WEEKDAYS[d]}</h3><ul class="week-list">${items.map((m) => `<li><span class="dot ${m.rating}" aria-label="${RATING[m.rating]}" role="img"></span><span>${esc(m.title)}${m.next && m.next !== 'none' ? ` · ${NEXT[m.next]}` : ''}</span>${m.note ? `<em>${esc(m.note)}</em>` : ''}</li>`).join('')}</ul></div>` : '';
+    }).join('');
+    return `<div class="card-head"><h2>Friday look-back</h2><div class="sub">Week of ${fmt(monday, { day: 'numeric', month: 'long' })}</div></div>
+      <div class="section"><div class="stats"><div><b>${s.moments.length}</b><span>moments</span></div><div><b>${s.captured.length}</b><span>captured</span></div><div><b>${s.well.length}</b><span>went well</span></div><div><b>${s.open.length}</b><span>follow up</span></div></div></div>
+      <div class="section" id="reflect"><h3>Think about</h3><ol class="qs">${qs.map((q) => `<li data-testid="reflect-question">${esc(q)}</li>`).join('')}</ol>
+        ${aiReflect?.loading ? '<p class="thinking">Claude is reading your week…</p>' : ''}
+        ${aiReflect?.questions ? `<h3>Claude noticed</h3><ol class="qs">${aiReflect.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+        ${aiReflect?.error ? `<p class="err">${esc(aiReflect.error)}</p>` : ''}
+        ${sample && !aiBlocked && !aiReflect?.loading ? `<div class="btns"><button type="button" class="btn text" data-reflect>${aiReflect?.questions ? 'Ask Claude again' : 'What patterns does Claude notice?'}</button></div>` : ''}</div>
+      <form class="section" id="lookback-form"><h3>How did you do? 1 struggled, 5 strong</h3>
+        ${[...TIERS].reverse().map((t) => `<div class="scale t-${t.id}"><div class="nm" id="lbl-${t.id}"><small>${t.tier}</small>${esc(t.name)}</div>
+          <div class="dots" role="radiogroup" aria-labelledby="lbl-${t.id}">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" id="r-${t.id}-${n}" name="${t.id}" value="${n}" aria-label="${n}" ${lb.scores[t.id] === n ? 'checked' : ''}><span aria-hidden="true">${n}</span></label>`).join('')}</div></div>`).join('')}
+        <label class="field">One win from this week<textarea id="lb-win" rows="2" maxlength="300">${esc(lb.win)}</textarea></label>
+        <label class="field">One thing to try next week<textarea id="lb-try" rows="2" maxlength="300">${esc(lb.tryNext)}</textarea></label>
+        <div class="btns" style="align-items:center"><button type="submit" class="btn filled">Save look-back</button>${lb.saved ? '<span class="captured-flag" role="status">Look-back saved</span>' : ''}</div>
+        <p style="margin:0;font-size:12px;color:var(--muted)">Your ratings are the “manager said” half of a later comparison with how your team saw the week.</p>
+      </form>
+      <div class="section"><h3>This week</h3>${byDay}</div>`;
+  }
+
+  function systemsCard() {
+    const uses = L.systemUses(BASE_USES, summary(), S.energy);
+    const stack = [...TIERS].reverse();
+    return `<div class="card-head"><h2>Your systems</h2><div class="sub">Week ${PROGRAMME_WEEK} · Each level enables the next</div></div>
+      <div class="section"><div class="stack-viz">${stack.map((t, i) => `<button type="button" class="t-${t.id}" style="--w:${58 + i * 10}%" data-jump="${t.id}">${t.tier} · ${esc(t.name)}</button>`).join('')}</div></div>
+      <div class="section">${stack.map((t) => {
+        const ratings = [...SELF_HISTORY[t.id], S.lookback.saved ? S.lookback.scores[t.id] ?? null : null];
+        const latest = ratings.filter((r) => r != null).at(-1);
+        return `<div class="tier t-${t.id}" id="tier-${t.id}" data-testid="tier">
+          <div class="th"><div><small>${t.tier}</small><br><b>${esc(t.name)}</b></div><span class="rating">${latest ? `Self-rating ${latest}/5` : ''}</span></div>
+          ${t.systems.map((s) => {
+            const on = L.isUnlocked(s, PROGRAMME_WEEK);
+            return `<div class="sys ${on ? '' : 'locked'}" data-testid="system"><span class="code">${s.code}</span>
+              <span>${esc(s.name)}<small>${on ? (uses[s.code] ? `${uses[s.code]} ${s.code === 'S0' ? 'check-in' : 'moment'}${uses[s.code] === 1 ? '' : 's'}` : 'Not used yet') : `Switches on in week ${s.unlock}`}</small></span>
+              <span class="badge ${on ? 'on' : 'off'}">${on ? 'Active' : `Week ${s.unlock}`}</span></div>`;
+          }).join('')}</div>`;
+      }).join('')}</div>`;
+  }
+
+  let lastCardKey = '';
+  function renderPanel() {
+    const t = top();
+    const deep = S.stack.length > 1;
+    $('#addon-head').innerHTML = `${deep ? `<button class="back" type="button" aria-label="Back" data-back><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>` : ''}
+      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1.2" fill="var(--t-grow-sustain)"/><rect x="6" y="8.5" width="12" height="4" rx="1.2" fill="var(--t-hold-standard)"/><rect x="4" y="14" width="16" height="4" rx="1.2" fill="var(--t-develop-people)"/><rect x="2" y="19.5" width="20" height="2.5" rx="1" fill="var(--t-lead-yourself)"/></svg>
+      <span class="name">LeadOS</span>`;
+    const body = $('#addon-body');
+    const key = JSON.stringify(t);
+    const keep = key === lastCardKey ? body.scrollTop : 0;
+    const focusId = document.activeElement?.id;
+    body.innerHTML = t.card === 'home' ? homeCard() : t.card === 'event' ? eventCard(byId[t.id]) : t.card === 'lookback' ? lookbackCard() : systemsCard();
+    body.scrollTop = keep;
+    lastCardKey = key;
+    if (focusId && document.getElementById(focusId) && body.contains(document.getElementById(focusId))) document.getElementById(focusId).focus({ preventScroll: true });
+    persist();
+  }
+
+  function renderView() {
+    $('#cal').hidden = S.view !== 'manager';
+    $('#hr').hidden = S.view !== 'hr';
+    document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === S.view)));
+    if (S.view === 'hr') $('#hr').innerHTML = hrView();
+    persist();
+  }
+
+  function renderAll() { renderChrome(); renderGrid(); renderPopover(); renderPanel(); renderView(); }
+
+  // ------------------------------------------------------------ HR dashboard (aggregates only)
+  function hrView() {
+    const s = summary();
+    const cur = L.hrSnapshot(HR_WEEKS, s.captured.filter((m) => m.day === TODAY_IDX).length + 3);
+    const weeks = [...HR_WEEKS.slice(0, -1), cur];
+    const total = 24, target = 0.6;
+    const pct = (x) => `${Math.round(x * 100)}%`;
+    const mix = { 'develop-people': 0.47, 'set-standard': 0.21, 'hold-standard': 0.14, 'lead-yourself': 0.12, 'grow-sustain': 0.06 };
+    const W = 560, H = 200, P = { l: 30, r: 54, t: 12, b: 26 };
+    const bw = (W - P.l - P.r) / weeks.length;
+    const y = (v) => P.t + (H - P.t - P.b) * (1 - v / total);
+    const bars = weeks.map((d, i) => {
+      const x = P.l + i * bw + bw * 0.2, w = bw * 0.6;
+      return `<rect x="${x}" y="${y(d.active)}" width="${w}" height="${y(0) - y(d.active)}" rx="3" fill="var(--line)"><title>${d.active} active</title></rect>
+        <rect x="${x}" y="${y(d.three)}" width="${w}" height="${y(0) - y(d.three)}" rx="3" fill="var(--brand)"><title>${d.three} at 3 or more moments</title></rect>
+        <text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${d.w}</text>`;
+    }).join('');
+    return `<div><div class="kicker">HR dashboard · Head of L&amp;D</div><h1>Manager pilot: week ${PROGRAMME_WEEK} of 12</h1></div>
+      <div class="banner">A mocked cohort of 23 managers plus the demo manager’s live clicks. Aggregates only: no individual manager, meeting title, rating or note is ever shown here.</div>
+      <div class="kpis">
+        <div class="kpi"><b>${cur.active}/${total}</b><span>managers active this week</span></div>
+        <div class="kpi"><b>${pct(cur.three / total)}</b><span>used LeadOS at 3 or more moments</span><span class="target">Pilot target ${pct(target)}</span></div>
+        <div class="kpi"><b>4.6</b><span>moments per active manager</span></div>
+        <div class="kpi"><b>${S.lookback.saved ? '58%' : '54%'}</b><span>did a Friday look-back</span></div>
+      </div>
+      <div class="two">
+        <section class="panel"><h2>Weekly usage</h2>
+          <div class="legend"><span><i style="background:var(--line)"></i>Active managers</span><span><i style="background:var(--brand)"></i>At 3 or more moments</span></div>
+          <div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Active managers and managers at 3 or more moments, weeks 1 to 5">
+            ${[0, 12, 24].map((v) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-soft)"/><text x="${P.l - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('')}
+            ${bars}
+            <line x1="${P.l}" x2="${W - P.r}" y1="${y(total * target)}" y2="${y(total * target)}" stroke="var(--good)" stroke-dasharray="4 4"/>
+            <text x="${W - P.r + 6}" y="${y(total * target) + 4}" style="fill:var(--good)">target</text></svg></div>
+        </section>
+        <section class="panel"><h2>Where in the stack, this week</h2>
+          ${[...TIERS].reverse().map((t) => `<div class="mixrow t-${t.id}"><span>${esc(t.name)}</span><span class="bar"><span style="width:${(mix[t.id] / 0.47) * 100}%"></span></span><span class="v">${pct(mix[t.id])}</span></div>`).join('')}
+          <p style="margin:0;font-size:12px;color:var(--muted)">Share of moments across all managers. Hold the Standard should grow when S7 switches on in week 6.</p>
+        </section>
+      </div>
+      <section class="panel"><h2>What this view never shows</h2><ul class="never"><li>Any individual manager’s activity, ratings or notes</li><li>Meeting titles, descriptions or who attended</li><li>Breakdowns for groups smaller than 5 managers</li></ul></section>`;
+  }
+
+  // ------------------------------------------------------------ navigation
+  function openEvent(id, { scrollTo } = {}) {
+    S.view = 'manager';
+    S.selected = id;
+    S.stack = [{ card: 'home' }, { card: 'event', id }];
+    renderGrid(); renderPopover(); renderPanel(); renderView();
+    const target = scrollTo ? $(scrollTo) : $('#addon');
+    requestAnimationFrame(() => {
+      const ev = $(`[data-event="${id}"]`);
+      if (ev && !isPhone()) ev.scrollIntoView({ block: 'nearest' });
+      target?.scrollIntoView({ block: scrollTo ? 'center' : 'start' });
+      if (scrollTo) flash(target);
+    });
+  }
+  function push(card) { S.stack.push({ card }); renderPanel(); if (isPhone()) $('#addon').scrollIntoView({ block: 'start' }); }
+  function flash(el) { if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+  const STEPS = [
+    { t: 'Calendar in', d: 'LeadOS sits in the calendar’s side panel and tags today’s 5 moments. Lunch and the vendor demo are left alone.', go: () => { S.view = 'manager'; S.selected = null; S.stack = [{ card: 'home' }]; renderAll(); flash($('#addon')); } },
+    { t: 'Prep before the moment', d: 'Open Marcus at 12:00, up next. Three questions, no script, picking up Monday’s note.', go: () => openEvent('marcus', { scrollTo: '#prep' }) },
+    { t: 'Capture in two taps', d: 'Sam’s 1:1 just finished. Tap how it went, then what’s next.', go: () => openEvent('sam', { scrollTo: '#capture' }) },
+    { t: 'Friday look-back', d: 'The week’s captures become questions. Rate each tier, name a win, pick one thing to try.', go: () => { S.view = 'manager'; S.selected = null; S.stack = [{ card: 'home' }, { card: 'lookback' }]; renderAll(); flash($('#reflect')); } },
+    { t: 'The operating stack', d: 'Five tiers, ten systems. Week 5: S7 switches on next week, S8 at week 10, S9 at week 12.', go: () => { S.view = 'manager'; S.selected = null; S.stack = [{ card: 'home' }, { card: 'systems' }]; renderAll(); requestAnimationFrame(() => { $('#tier-hold-standard')?.scrollIntoView({ block: 'center' }); flash($('#tier-hold-standard')); }); } },
+    { t: 'What HR sees', d: 'Usage against the pilot target. Never an individual’s notes.', go: () => { S.view = 'hr'; renderView(); window.scrollTo({ top: 0 }); } },
+  ];
+  $('#steps').innerHTML = STEPS.map((s, i) => `<li><button type="button" data-step="${i}"><b>${s.t}</b><span>${s.d}</span></button></li>`).join('');
+  function toggleScript(open) {
+    const el = $('#script');
+    el.hidden = !open;
+    $('#script-btn').setAttribute('aria-expanded', String(open));
+    if (open) el.querySelector('button[data-step]')?.focus();
+  }
+
+  // ------------------------------------------------------------ events
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button');
+    if (!b) {
+      if (S.selected && !ev.target.closest('.popover, .addon')) { S.selected = null; renderGrid(); renderPopover(); }
+      return;
+    }
+    const d = b.dataset;
+    if (d.view) { S.view = d.view; renderView(); }
+    else if (d.event) openEvent(d.event);
+    else if (d.open) openEvent(d.open);
+    else if ('closePop' in d) { S.selected = null; renderGrid(); renderPopover(); }
+    else if ('back' in d) { S.stack.pop(); if (top().card !== 'event') { S.selected = null; renderGrid(); renderPopover(); } renderPanel(); }
+    else if (d.push) push(d.push);
+    else if (d.cap) { (S.captures[d.cap] ??= {})[d.f] = d.v; renderPanel(); }
+    else if (d.opennote) { S.noteOpen[d.opennote] = true; renderPanel(); $(`#note-${d.opennote}`)?.focus(); }
+    else if (d.energy) { S.energy = d.energy; renderPanel(); }
+    else if (d.ask) askPrep(byId[d.ask]);
+    else if ('reflect' in d) askReflect();
+    else if (d.jump) { const el = $(`#tier-${d.jump}`); el?.scrollIntoView({ block: 'start' }); flash(el); }
+    else if (d.step) { toggleScript(false); STEPS[d.step].go(); }
+    else if ('closeScript' in d) toggleScript(false);
+    else if (b.id === 'script-btn') toggleScript($('#script').hidden);
+    else if (b.id === 'today-btn') { $('#grid-scroll').scrollTop = 0; }
+    else if (b.id === 'reset') { S = fresh(); Object.keys(ai).forEach((k) => delete ai[k]); aiReflect = null; try { localStorage.removeItem(KEY); } catch {} renderAll(); }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (!$('#script').hidden) toggleScript(false);
+    else if (S.selected) { S.selected = null; renderGrid(); renderPopover(); }
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.dataset.note) { (S.captures[t.dataset.note] ??= {}).note = t.value; persist(); }
+    else if (t.id === 'lb-win') { S.lookback.win = t.value; persist(); }
+    else if (t.id === 'lb-try') { S.lookback.tryNext = t.value; persist(); }
+    else if (t.type === 'radio' && t.closest('#lookback-form')) { S.lookback.scores[t.name] = Number(t.value); persist(); }
+  });
+  document.addEventListener('submit', (ev) => {
+    if (ev.target.id !== 'lookback-form') return;
+    ev.preventDefault();
+    S.lookback.saved = true;
+    renderPanel();
+  });
+  let lastPhone = isPhone();
+  addEventListener('resize', () => { if (isPhone() !== lastPhone) { lastPhone = isPhone(); renderGrid(); } renderPopover(); });
+
+  renderAll();
+  // Start the grid at 08:00 with the current time in view.
+  $('#grid-scroll').scrollTop = 0;
+})();
+</script>

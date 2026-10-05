@@ -7,7 +7,7 @@
   --accent: #2f5d50;
   --accent-ink: #ffffff;
   --accent-soft: #e4efe9;
-  --well: #3d8a5f;
+  --well: #2e7350;
   --mixed: #c79a2b;
   --hard: #c2553f;
   --p-lead-yourself: #5b7083;
@@ -28,6 +28,7 @@
     --accent: #7cc1a6;
     --accent-ink: #10231c;
     --accent-soft: #1f3a31;
+    --well: #6cc596;
   }
 }
 

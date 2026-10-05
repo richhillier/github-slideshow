@@ -23,7 +23,18 @@ To use real data, copy `.env.example` to `.env`, fill it in, and run `node --env
 | `ANTHROPIC_API_KEY` | Prep questions written by Claude (`claude-opus-5-5`, low effort, structured output, server-side refusal fallback on), grounded in the org-context file. Without it, a built-in question library is used. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | "Connect Google Calendar" (read-only scope `calendar.events.readonly`). Create an OAuth client of type *Web application* in Google Cloud and add `http://localhost:3000/oauth/google/callback` as a redirect URI. |
 
-Tests: `npm test`.
+Tests (red/green TDD; see `CLAUDE.md`):
+
+```bash
+npm test            # unit tests (node:test)
+npm run test:e2e    # Playwright: demo mockup + web app, desktop and phone, axe accessibility
+```
+
+## Demo: LeadOS inside the calendar
+
+`demo/index.html` (with `demo/logic.js`) is a clickable mockup of LeadOS as a calendar add-on: a Google Calendar-style week view with LeadOS in the side panel. Open an event and the panel shows its prep card or two-tap capture; the home card lists today's moments, with the Friday look-back, the systems stack and an HR dashboard. Serve it with `node e2e/serve-static.mjs demo 4310` and open http://localhost:4310/index.html.
+
+In production this is a Google Workspace add-on: a homepage card plus an event-open card in Calendar's side panel, built with Google's card components.
 
 ## What's in it (PRD scope)
 
