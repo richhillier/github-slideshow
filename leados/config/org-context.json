@@ -1,0 +1,74 @@
+{
+  "_note": "Prototype org-context file. The org (Northwind Logistics) is fictional demo data. The five pillars and ten systems below are PLACEHOLDERS until the real LeadOS framework is dropped in; keep the ids stable and change names/descriptions freely.",
+  "org": {
+    "name": "Northwind Logistics",
+    "size": 850,
+    "country": "UK",
+    "timezone": "Europe/London"
+  },
+  "values": [
+    { "name": "Own it end to end", "meaning": "We follow work through to the customer outcome, not just our part of it." },
+    { "name": "Say the hard thing kindly", "meaning": "We raise problems early and directly, with care for the person." },
+    { "name": "Customers feel the difference", "meaning": "Decisions are judged by what changes for the customer." }
+  ],
+  "managerStandards": [
+    "Every direct report has a 1:1 at least every two weeks, and it is rarely cancelled.",
+    "Feedback is given within 48 hours of the moment it relates to.",
+    "Performance concerns are raised early, stated with specific examples, and shared with your HR business partner before any formal step.",
+    "Team meetings end with clear owners and dates for every action.",
+    "Each quarter, every team member can say what the team's top three priorities are."
+  ],
+  "pillars": [
+    {
+      "id": "clarity",
+      "name": "Clarity",
+      "summary": "The team knows where it is going and what matters most.",
+      "systems": [
+        { "id": "direction", "name": "Direction setting" },
+        { "id": "priorities", "name": "Planning and priorities" }
+      ]
+    },
+    {
+      "id": "coaching",
+      "name": "Coaching",
+      "summary": "Each person is growing and knows how they are doing.",
+      "systems": [
+        { "id": "one-to-ones", "name": "1:1 rhythm" },
+        { "id": "feedback", "name": "Feedback" }
+      ]
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "summary": "The team works well together and decides well.",
+      "systems": [
+        { "id": "team-rhythm", "name": "Team rhythms" },
+        { "id": "decisions", "name": "Decision-making" }
+      ]
+    },
+    {
+      "id": "standards",
+      "name": "Standards",
+      "summary": "Expectations are clear and gaps are dealt with early.",
+      "systems": [
+        { "id": "expectations", "name": "Expectations" },
+        { "id": "hard-conversations", "name": "Difficult conversations" }
+      ]
+    },
+    {
+      "id": "self",
+      "name": "Self",
+      "summary": "The manager manages their own energy, time and learning.",
+      "systems": [
+        { "id": "focus", "name": "Energy and focus" },
+        { "id": "reflection", "name": "Reflection" }
+      ]
+    }
+  ],
+  "momentTypes": {
+    "one_to_one": { "label": "1:1", "pillar": "coaching", "system": "one-to-ones" },
+    "team_meeting": { "label": "Team meeting", "pillar": "team", "system": "team-rhythm" },
+    "planning": { "label": "Planning block", "pillar": "clarity", "system": "priorities" },
+    "difficult": { "label": "Difficult conversation", "pillar": "standards", "system": "hard-conversations" }
+  }
+}
