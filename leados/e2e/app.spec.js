@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 test('every page renders without errors', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  for (const [path, heading] of [['/today', /Today/], ['/lookback', /Week of/], ['/pillars', /operating stack/], ['/hr', /Manager pilot/]]) {
+  for (const [path, heading] of [['/today', /Today/], ['/lookback', /Week of/], ['/pillars', /Your pillars/], ['/hr', /Manager pilot/]]) {
     const res = await page.goto(BASE + path);
     expect(res.status(), path).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
@@ -34,17 +34,25 @@ test('prep cards load and two-tap capture saves', async ({ page }) => {
 
 test('look-back saves self-ratings', async ({ page }) => {
   await page.goto(`${BASE}/lookback`);
-  for (const name of ['lead-yourself', 'set-standard', 'develop-people', 'hold-standard', 'grow-sustain']) {
+  for (const name of ['lead-yourself', 'set-standard', 'develop-people', 'hold-standard', 'sustain-grow']) {
     await page.locator(`input[name="score_${name}"][value="3"]`).check({ force: true });
   }
   await page.getByRole('button', { name: /look-back/ }).click();
   await expect(page.getByText('Look-back saved.')).toBeVisible();
 });
 
-test('systems page shows the stack with unlock weeks', async ({ page }) => {
+test('pillars page: five pillars, systems collapsed underneath, no codes or week locks', async ({ page }) => {
   await page.goto(`${BASE}/pillars`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your pillars');
   await expect(page.locator('.tier')).toHaveCount(5);
-  await expect(page.locator('.systems li', { hasText: 'Performance System' })).toContainText('Week 6');
+  await expect(page.locator('.tier').first()).toContainText('Sustain & Grow');
+  const text = await page.locator('main').innerText();
+  expect(text).not.toMatch(/\bS\d\b/);
+  expect(text).not.toMatch(/\bweek \d+\b|switches on|unlock/i);
+  const dp = page.locator('.tier', { hasText: 'Develop People' });
+  await expect(dp.locator('.systems')).toBeHidden();
+  await dp.getByText('What’s underneath').click();
+  await expect(dp.locator('.systems')).toContainText('1:1s');
 });
 
 test('no horizontal scrolling and no serious accessibility violations on Today', async ({ page }) => {

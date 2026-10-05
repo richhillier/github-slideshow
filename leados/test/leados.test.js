@@ -87,13 +87,27 @@ test('HR view never contains notes or meeting titles', () => {
   for (const s of [...notes, ...titles]) assert.ok(!body.includes(s), `HR view leaked: ${s}`);
 });
 
-test('systems unlock by programme week (demo manager is in week 5)', async () => {
+test('canonical pillars and systems, with no week-based gating', async () => {
+  const { pillars } = await import('../src/org.js');
+  assert.deepEqual(pillars.map((p) => p.name), ['Lead Yourself', 'Set the Standard', 'Develop People', 'Hold the Standard', 'Sustain & Grow']);
+  assert.deepEqual(pillars.flatMap((p) => p.systems.map((s) => s.name)),
+    ['Energy', 'Decisions', 'Clarity', 'Planning', 'Communication', '1:1s', 'Feedback', 'Performance', 'Growth', 'Reflection']);
+  for (const s of pillars.flatMap((p) => p.systems)) assert.equal(s.unlockWeek, undefined, s.name);
+});
+
+test('manager pages show pillars, never system codes or week unlocks', async () => {
   const { pillarProgress } = await import('../src/insights.js');
-  const { programmeWeek } = await import('../src/org.js');
+  const { pillarsPage } = await import('../src/views.js');
   seedDemo(dayKey());
-  const { week, tiers } = pillarProgress(1);
-  assert.equal(week, 5);
-  const systems = Object.fromEntries(tiers.flatMap((t) => t.systems).map((s) => [s.code, s.unlocked]));
-  assert.deepEqual(systems, { S0: true, S1: true, S2: true, S3: true, S4: true, S5: true, S6: true, S7: false, S8: false, S9: false });
-  assert.equal(programmeWeek('2026-10-05', '2026-11-09'), 6);
+  const html = pillarsPage({ manager: { name: 'Jordan', calendar_source: 'demo' }, progress: pillarProgress(1) });
+  const main = html.split('<main>')[1].split('</main>')[0].replace(/<[^>]+>/g, ' ');
+  assert.match(main, /Your pillars/);
+  assert.match(main, /Sustain &amp; Grow/);
+  assert.doesNotMatch(main, /\bS\d\b/);
+  assert.doesNotMatch(main, /\bweek \d+\b|switches on|unlock|programme/i);
+});
+
+test('difficult conversations feed Performance, not Feedback', async () => {
+  const { momentTypes } = await import('../src/org.js');
+  assert.deepEqual(momentTypes.difficult, { label: 'Difficult conversation', pillar: 'hold-standard', system: 'performance' });
 });
