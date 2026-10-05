@@ -65,7 +65,7 @@ db.exec(`
   );
 `);
 
-// Added after the first schema: the Monday a manager's programme started (drives system unlock weeks).
+// Added after the first schema: the Monday a manager joined the pilot (HR's pilot-week framing only).
 try { db.exec('ALTER TABLE managers ADD COLUMN started_on TEXT'); } catch { /* already there */ }
 
 export const now = () => new Date().toISOString();

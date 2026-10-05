@@ -10,13 +10,6 @@ export const TZ = orgContext.org.timezone ?? 'Europe/London';
 
 export const lookbackSystem = orgContext.lookbackSystem;
 
-/** Programme week (1-based) for a manager, from the Monday their programme started. */
-export function programmeWeek(startedOn, todayKey) {
-  if (!startedOn) return 1;
-  const days = (Date.parse(todayKey) - Date.parse(startedOn)) / 86_400_000;
-  return Math.max(1, Math.floor(days / 7) + 1);
-}
-
 export function pillarById(id) {
   return pillars.find((p) => p.id === id);
 }

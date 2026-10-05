@@ -74,7 +74,7 @@ export function seedDemo(today = dayKey()) {
 
   const thisMonday = weekStart(today);
   const lastMonday = addDays(thisMonday, -7);
-  // Jordan is in week 5 of the programme: S7 Performance unlocks next week.
+  // Jordan started the pilot four weeks ago (HR's pilot-week framing).
   setProgrammeStart(m.id, addDays(thisMonday, -28), { overwrite: true });
   const todayStart = londonTime(today).toISOString();
 
@@ -98,15 +98,15 @@ export function seedDemo(today = dayKey()) {
 
   // Five weeks of earlier self-ratings so the pillar trends have a shape.
   const history = [
-    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 1, 'grow-sustain': 2 },
-    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 2, 'grow-sustain': 2 },
+    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 1, 'sustain-grow': 2 },
+    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 2, 'sustain-grow': 2 },
     { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 3, 'hold-standard': 2 },
-    { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 2, 'grow-sustain': 3 },
+    { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 2, 'sustain-grow': 3 },
   ];
   history.forEach((pillarScores, i) => saveLookback(m.id, addDays(lastMonday, -7 * (history.length - i)), { pillarScores, win: null, tryNext: null }));
 
   saveLookback(m.id, lastMonday, {
-    pillarScores: { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 3, 'grow-sustain': 3 },
+    pillarScores: { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 3, 'sustain-grow': 3 },
     win: 'Had the attendance conversation with Dan instead of putting it off.',
     tryNext: 'End stand-ups at 15 minutes and give every retro action an owner.',
   });

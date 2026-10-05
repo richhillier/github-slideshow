@@ -9,7 +9,7 @@ const NEXT = [['none', 'Nothing'], ['follow_up', 'Follow up'], ['revisit', 'Revi
 const pct = (x) => `${Math.round(x * 100)}%`;
 
 export function layout({ title, active, manager, body }) {
-  const nav = [['today', '/today', 'Today'], ['lookback', '/lookback', 'Look-back'], ['pillars', '/pillars', 'Systems'], ['hr', '/hr', 'HR view']];
+  const nav = [['today', '/today', 'Today'], ['lookback', '/lookback', 'Look-back'], ['pillars', '/pillars', 'Pillars'], ['hr', '/hr', 'HR view']];
   return `<!doctype html>
 <html lang="en-GB">
 <head>
@@ -207,32 +207,25 @@ function sparkline(points) {
 }
 
 export function pillarsPage({ manager, progress }) {
-  const { week, tiers } = progress;
-  // Drawn top-down like the stack: Grow & Sustain on top, Lead Yourself at the base.
-  const stack = [...tiers].reverse();
+  // Top-down like the stack: Sustain & Grow on top, Lead Yourself at the base. Systems stay underneath.
+  const stack = [...progress.tiers].reverse();
   return layout({
-    title: 'Systems',
+    title: 'Your pillars',
     active: 'pillars',
     manager,
     body: `
-<h1>Your leadership operating stack</h1>
-<p class="muted">Each level enables the next. Week ${week} of your programme. Built from your captured moments and Friday self-ratings.</p>
-<nav class="stack-map" aria-label="Tiers">${stack.map((p, i) => `<a href="#tier-${p.id}" class="tier-chip t-${p.id}" style="--w:${60 + i * 10}%"><span>${esc(p.tier)}</span> ${esc(p.name)}</a>`).join('')}</nav>
+<h1>Your pillars</h1>
+<p class="muted">Each level enables the next. Built from your captured moments and Friday self-ratings.</p>
 <div class="stack">
 ${stack.map((p) => {
     const latest = p.selfRatings.filter((r) => r.score != null).at(-1);
     return `<article class="tier t-${p.id}" id="tier-${p.id}">
   <header>
-    <div><span class="tier-code">${esc(p.tier)}</span><h2>${esc(p.name)}</h2><p class="muted">${esc(p.summary)}</p></div>
-    <div class="trend"><span class="muted">Self-rating, 6 weeks${latest ? ` · now ${latest.score}/5` : ''}</span>${sparkline(p.selfRatings)}</div>
+    <div><h2>${esc(p.name)}</h2><p class="muted">${esc(p.summary)}</p></div>
+    <div class="trend"><span class="muted">Your self-rating${latest ? ` · ${latest.score}/5` : ''}</span>${sparkline(p.selfRatings)}</div>
   </header>
-  ${p.captured ? `<p class="tier-stat"><b>${p.captured}</b> moment${p.captured === 1 ? '' : 's'} captured · <b>${pct(p.wellShare)}</b> went well</p>` : ''}
-  <ul class="systems">${p.systems.map((s) => `<li class="${s.unlocked ? '' : 'locked'}">
-    <span class="sys-code">${esc(s.code)}</span>
-    <span class="sys-name">${esc(s.name)}</span>
-    <span class="sys-uses muted">${s.unlocked && s.uses ? `${s.uses} ${s.unit}${s.uses === 1 ? '' : 's'}` : ''}</span>
-    <span class="status ${s.unlocked ? 'on' : ''}">${s.unlocked ? 'Active' : `Week ${s.unlockWeek}`}</span>
-  </li>`).join('')}</ul>
+  ${p.captured ? `<p class="tier-stat">${p.captured} moment${p.captured === 1 ? '' : 's'} captured · ${pct(p.wellShare)} went well</p>` : ''}
+  <details><summary>What’s underneath</summary><ul class="systems">${p.systems.map((s) => `<li>${esc(s.name)}${s.uses ? ` <span class="muted">· ${s.uses} ${s.unit}${s.uses === 1 ? '' : 's'}</span>` : ''}</li>`).join('')}</ul></details>
 </article>`;
   }).join('')}
 </div>`,

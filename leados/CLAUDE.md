@@ -16,7 +16,7 @@ if a test is wrong, fix the test in its own step and say why.
 
 | Layer | Where | Run |
 | --- | --- | --- |
-| Unit: rules (moment tagging, unlock weeks, summaries, privacy) | `test/*.test.js` (node:test) | `npm test` |
+| Unit: rules (moment tagging, pillars, capture, summaries, privacy) | `test/*.test.js` (node:test) | `npm test` |
 | End to end: the demo mockup and the web app, desktop and phone, axe accessibility | `e2e/*.spec.js` (Playwright) | `npm run test:e2e` |
 
 `npm run test:all` runs both. CI (`.github/workflows/leados.yml`) runs both on every push.
@@ -28,3 +28,4 @@ Pure logic lives where unit tests can import it (`src/`, `demo/logic.js`). Pages
 - LeadOS lives inside the calendar (a Google Workspace Calendar add-on side panel), not a separate app.
 - Only an event's title, time and attendee count are read. HR views show aggregates only.
 - Prompts ask questions; they never script what the manager says.
+- Managers see pillars, never system codes, week unlocks, red badges or counts of what they missed.

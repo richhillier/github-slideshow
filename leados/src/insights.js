@@ -1,6 +1,6 @@
 // Weekly look-back, pillar progress and HR aggregates. Everything here is computed from captures.
-import { momentTypes, pillars, lookbackSystem, programmeWeek } from './org.js';
-import { momentsForWeek, getLookback, allLookbacks, allCapturedMoments, weeklyUsage, lookbackCount, getManager } from './store.js';
+import { momentTypes, pillars, lookbackSystem } from './org.js';
+import { momentsForWeek, getLookback, allLookbacks, allCapturedMoments, weeklyUsage, lookbackCount } from './store.js';
 import { addDays, dayKey, weekStart } from './time.js';
 
 // ---- weekly look-back -----------------------------------------------------
@@ -55,8 +55,8 @@ export function reflectionQuestions(summary) {
 // ---- pillar view ----------------------------------------------------------
 
 /**
- * The operating stack for one manager: per tier, captured moments, share that went well and weekly
- * self-ratings; per system, its unlock state for the manager's programme week and how often it was used.
+ * The five pillars for one manager: captured moments, share that went well and weekly self-ratings.
+ * Systems sit underneath with how often each was used. Nothing is gated by calendar week.
  */
 export function pillarProgress(managerId, weeks = 6) {
   const today = dayKey();
@@ -65,17 +65,13 @@ export function pillarProgress(managerId, weeks = 6) {
   const captured = allCapturedMoments(managerId);
   const lookbackRows = allLookbacks(managerId);
   const lookbacks = Object.fromEntries(lookbackRows.map((l) => [l.week_start, l.pillar_scores]));
-  const week = programmeWeek(getManager(managerId)?.started_on, today);
 
   const tiers = pillars.map((p) => {
     const mine = captured.filter((c) => momentTypes[c.moment_type].pillar === p.id);
     const systems = p.systems.map((s) => {
-      const unlockWeek = s.unlockWeek ?? 1;
       const isLookback = lookbackSystem?.pillar === p.id && lookbackSystem?.system === s.id;
       return {
         ...s,
-        unlockWeek,
-        unlocked: week >= unlockWeek,
         uses: isLookback ? lookbackRows.length : mine.filter((c) => momentTypes[c.moment_type].system === s.id).length,
         unit: isLookback ? 'look-back' : 'moment',
       };
@@ -88,7 +84,7 @@ export function pillarProgress(managerId, weeks = 6) {
       selfRatings: mondays.map((m) => ({ week: m, score: lookbacks[m]?.[p.id] ?? null })),
     };
   });
-  return { week, tiers };
+  return { tiers };
 }
 
 // ---- HR view: aggregates only ---------------------------------------------
