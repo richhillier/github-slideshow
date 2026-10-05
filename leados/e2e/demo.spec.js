@@ -235,3 +235,27 @@ test('accessibility: no serious or critical axe violations', async ({ page }) =>
   await page.getByRole('button', { name: 'HR dashboard' }).click();
   expect(await check()).toEqual([]);
 });
+
+test('deeper prep for Marcus keeps the question about him, with a quiet meta line', async ({ page }) => {
+  await openEvent(page, 'Tough feedback: Marcus (missed SLAs)');
+  const p = panel(page);
+  await expect(p.getByText('Building on your feedback habit')).toBeVisible();
+  await expect(p.getByTestId('prep-question')).toHaveCount(3);
+  await expect(p.getByTestId('prep-question').nth(1)).toHaveText(/What might be going on that you haven’t asked about yet\?/);
+  await expect(p.getByTestId('prep-question').nth(2)).toContainText('HR business partner');
+  await expectCleanManagerUi(page);
+});
+
+test('pillar counts add up to what is underneath', async ({ page }) => {
+  const p = panel(page);
+  await p.getByRole('button', { name: 'Your pillars' }).click();
+  for (const row of await p.getByTestId('pillar-row').all()) {
+    const total = Number((await row.getByTestId('pillar-count').innerText()).match(/\d+/)[0]);
+    await row.getByText('What’s underneath').click();
+    const parts = (await row.getByTestId('system-count').allInnerTexts()).map((t) => Number(t.match(/\d+/)[0]));
+    expect(parts).toHaveLength(2);
+    expect(parts[0] + parts[1]).toBe(total);
+  }
+  await expect(p.getByTestId('pillar-row').filter({ hasText: 'Hold the Standard' }).getByTestId('pillar-count')).not.toHaveText(/^0/);
+  await expectCleanManagerUi(page);
+});

@@ -165,11 +165,25 @@ test('systemUses: captures, feedback follow-ups, energy check-in and look-back',
   assert.equal(base.S0, 0, 'baseline is not mutated');
 });
 
-test('pillarWeekCounts: moments this week per pillar', () => {
+test('systemWeekCounts: this week’s moments per system, with Feedback follow-ups under S6', () => {
   const s = L.weekSummary(week, today, { sam: { rating: 'well' } }, '11:20');
-  assert.deepEqual(L.pillarWeekCounts(s, { energy: 'Low', lookbackSaved: false }), {
-    'lead-yourself': 1, 'set-standard': 1, 'develop-people': 3, 'hold-standard': 1, 'sustain-grow': 0,
-  });
+  const c = L.systemWeekCounts(s, { energy: 'Low', lookbackSaved: false });
+  assert.equal(c.S0, 1); // energy check-in
+  assert.equal(c.S3, 1); // Focus time happened, even uncaptured
+  assert.equal(c.S4, 1);
+  assert.equal(c.S5, 2); // Aisha on Tuesday, Sam today
+  assert.equal(c.S6, 2); // follow-ups after Dan (hard) and Aisha (mixed)
+  assert.equal(c.S7, 1);
+  assert.equal(c.S9, 0);
+});
+
+test('pillarWeekCounts add up: each pillar is the sum of its two systems', () => {
+  const s = L.weekSummary(week, today, { sam: { rating: 'well' } }, '11:20');
+  const extras = { energy: 'Low', lookbackSaved: true };
+  const pillars = L.pillarWeekCounts(s, extras);
+  const systems = L.systemWeekCounts(s, extras);
+  for (const t of L.TIERS) assert.equal(pillars[t.id], t.systems.reduce((n, x) => n + systems[x.code], 0), t.id);
+  assert.deepEqual(pillars, { 'lead-yourself': 1, 'set-standard': 1, 'develop-people': 3, 'hold-standard': 3, 'sustain-grow': 1 });
 });
 
 test('promptDepth: Performance prompts deepen after several Feedback moments, never by calendar week', () => {
@@ -214,7 +228,55 @@ test('context carries across the week: Friday prep cites earlier captures', () =
 
 test('prep cards ask questions, never scripts', () => {
   for (const e of SC.EVENTS.filter((x) => x.prep)) {
-    for (const q of [...e.prep.questions, ...(e.prep.deeper ?? [])]) assert.match(q, /\?$/, `${e.title}: ${q}`);
+    const qs = [...e.prep.questions, ...(e.prep.deeper?.questions ?? []).map((q) => q.text)];
+    for (const q of qs) assert.match(q, /\?$/, `${e.title}: ${q}`);
     assert.ok(e.prep.questions.length >= 2 && e.prep.questions.length <= 3);
   }
+});
+
+test('deeper prep adds to the human question, never replaces it', () => {
+  const withDeeper = SC.EVENTS.filter((e) => e.prep?.deeper);
+  assert.ok(withDeeper.length >= 1);
+  for (const e of withDeeper) {
+    assert.equal(e.prep.deeper.focus, e.prep.focus, `${e.title}: same focus line`);
+    assert.equal(e.prep.deeper.questions.length, 3);
+    assert.ok(e.prep.deeper.questions.some((q) => q.kind === 'person'), `${e.title}: a question about the person`);
+    assert.ok(e.prep.deeper.questions.some((q) => q.kind === 'process'), `${e.title}: adds consequence or process`);
+    assert.ok(L.isValidDeeper(e.prep));
+  }
+  assert.equal(L.isValidDeeper({ focus: 'A', deeper: { focus: 'B', questions: [{ text: 'x?', kind: 'person' }] } }), false);
+  assert.equal(L.isValidDeeper({ focus: 'A', deeper: { focus: 'A', questions: [{ text: 'x?', kind: 'process' }] } }), false);
+});
+
+test('Marcus’s deeper set keeps the question about him', () => {
+  const marcus = SC.EVENTS.find((e) => e.id === 'marcus');
+  assert.deepEqual(marcus.prep.deeper.questions.map((q) => q.text), [
+    'What is the one change Marcus must leave understanding, in a single sentence?',
+    'On Monday he was quiet and low on energy. What might be going on that you haven’t asked about yet?',
+    'If nothing changes in two weeks, what happens next, and does your HR business partner need to know first?',
+  ]);
+});
+
+test('prepCard: starter by default; deeper keeps the focus and adds a quiet meta line', () => {
+  const marcus = SC.EVENTS.find((e) => e.id === 'marcus');
+  const starter = L.prepCard(marcus.prep, 'starter');
+  assert.deepEqual(starter, { focus: marcus.prep.focus, questions: marcus.prep.questions, meta: null });
+  const deeper = L.prepCard(marcus.prep, 'deeper');
+  assert.equal(deeper.focus, marcus.prep.focus);
+  assert.equal(deeper.meta, 'Building on your feedback habit');
+  assert.equal(deeper.questions.length, 3);
+  assert.doesNotMatch(deeper.meta, /\bS\d\b/);
+  const sam = SC.EVENTS.find((e) => e.id === 'sam');
+  assert.deepEqual(L.prepCard(sam.prep, 'deeper').questions, sam.prep.questions, 'no deeper set: starter stays');
+});
+
+test('the Claude prep prompt asks questions only and requires one about the person', () => {
+  const marcus = SC.EVENTS.find((e) => e.id === 'marcus');
+  const p = L.prepPrompt(marcus, { orgBlock: 'ORG', depth: 'deeper' });
+  assert.match(p, /never write a script/);
+  assert.match(p, /At least one question must be about the person/);
+  assert.match(p, /keep the person question/i);
+  assert.match(p, /Tough feedback: Marcus/);
+  assert.match(p, /ORG/);
+  assert.doesNotMatch(L.prepPrompt(marcus, { orgBlock: 'ORG', depth: 'starter' }), /keep the person question/i);
 });
