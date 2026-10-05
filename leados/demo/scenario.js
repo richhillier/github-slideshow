@@ -75,11 +75,15 @@
           'What is the one change Marcus must leave understanding, in a single sentence?',
           'Which two missed SLAs will you use as examples, and are they facts rather than impressions?',
           'On Monday he was quiet and low on energy. What might be going on that you haven’t asked about yet?'],
-        // Used once Feedback is a habit (promptDepth 'deeper').
-        deeper: [
-          'What is the one change Marcus must leave understanding, in a single sentence?',
-          'If nothing changes in two weeks, what happens next, and does he know that?',
-          'Does your HR business partner need to know before or after today’s conversation?'],
+        // Used once Feedback is a habit (promptDepth 'deeper'). Adds consequence; keeps the person question.
+        deeper: {
+          focus: 'Say the hard thing kindly: specific, early and fair.',
+          questions: [
+            { kind: 'process', text: 'What is the one change Marcus must leave understanding, in a single sentence?' },
+            { kind: 'person', text: 'On Monday he was quiet and low on energy. What might be going on that you haven\u2019t asked about yet?' },
+            { kind: 'process', text: 'If nothing changes in two weeks, what happens next, and does your HR business partner need to know first?' },
+          ],
+        },
       } }),
     E('lunch', 4, '13:00', '13:45', 'Lunch', 1, 'sage'),
     E('aisha', 4, '14:30', '15:00', 'Career chat: Aisha', 2, 'blue', {

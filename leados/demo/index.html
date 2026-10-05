@@ -404,9 +404,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 
   async function askPrep(e) {
     ai[e.id] = { loading: true }; renderPanel();
-    const sys = SYS[TYPES[e.type].sys];
-    const depth = L.promptDepth(sys.code, uses());
-    const prompt = `You write prep cards for LeadOS, a read-only Google Calendar add-on that helps first-time and frontline managers lead well in moments already on their calendar. A prep card is read in the two minutes before a meeting.\n\nRules: ask questions; never write a script, talking points or words for the manager to say. Give one short focus line (under 15 words) and exactly three questions, each under 25 words, concrete to this moment. Use the organisation's values or standards, in their own words, only where they genuinely apply. Don't invent facts about anyone. British English. No emoji.\n\n${orgBlock()}\n\nMoment: ${TYPES[e.type].label}, pillar ${L.pillarOf(e.type).name}, system ${sys.code} ${sys.name}${depth === 'deeper' ? ' (this manager gives feedback regularly: go one level deeper)' : ''}.\nCalendar title: ${e.title}\nTime: Friday ${e.start}\u2013${e.end}. Attendees including the manager: ${e.n}.\n${e.context ? `From the manager's own earlier capture: ${e.context.replace(/<[^>]+>/g, '')}` : 'No earlier captures for this meeting.'}\n\nReply with only JSON: {"focus": "...", "questions": ["...", "...", "..."]}`;
+    const prompt = L.prepPrompt(e, { orgBlock: orgBlock(), depth: L.promptDepth(TYPES[e.type].sys, uses()) });
     try {
       const out = await sample.json(prompt, { modelTier: 'quick', cache: false });
       const qs = Array.isArray(out?.questions) ? out.questions.map(String).filter((q) => q.trim()).slice(0, 3) : [];
@@ -540,11 +538,10 @@ details[open] > summary::before { transform: rotate(90deg); }
 
   function prepSection(e) {
     const a = ai[e.id];
-    const deeper = e.prep?.deeper && L.promptDepth(TYPES[e.type].sys, uses()) === 'deeper';
-    const card = a?.questions ? a : e.prep && { focus: e.prep.focus, questions: deeper ? e.prep.deeper : e.prep.questions };
+    const card = a?.questions ? { ...a, meta: null } : e.prep && L.prepCard(e.prep, L.promptDepth(TYPES[e.type].sys, uses()));
     return `<div class="section" id="prep"><h3>Before</h3>
       ${e.context ? `<div class="context">${e.context}</div>` : ''}
-      ${a?.loading ? '<p class="thinking">Claude is writing questions for this moment\u2026</p>' : card ? `<p class="focus-line">${esc(card.focus)}</p><ol class="qs">${card.questions.map((q) => `<li data-testid="prep-question">${esc(q)}</li>`).join('')}</ol>` : ''}
+      ${a?.loading ? '<p class="thinking">Claude is writing questions for this moment\u2026</p>' : card ? `<p class="focus-line">${esc(card.focus)}</p>${card.meta ? `<p class="meta" style="margin:-6px 0 0">${esc(card.meta)}</p>` : ''}<ol class="qs">${card.questions.map((q) => `<li data-testid="prep-question">${esc(q)}</li>`).join('')}</ol>` : ''}
       ${a?.error ? `<p class="err">${esc(a.error)}</p>` : ''}
       ${sample && !aiBlocked && !a?.loading ? `<button type="button" class="link" data-ask="${e.id}">${a?.questions ? 'Ask Claude again' : 'Fresh questions from Claude'}</button>` : ''}
     </div>`;
@@ -610,14 +607,15 @@ details[open] > summary::before { transform: rotate(90deg); }
 
   function pillarsCard() {
     const counts = L.pillarWeekCounts(summary(), extras());
+    const sysCounts = L.systemWeekCounts(summary(), extras());
     return `<div class="card-head"><h2>Your pillars</h2><div class="meta">Each level enables the next.</div></div>
       <div class="section">${[...TIERS].reverse().map((t) => {
         const ratings = [...SELF_HISTORY[t.id], S.lookback.saved ? S.lookback.scores[t.id] ?? null : null];
         const latest = ratings.filter((r) => r != null).at(-1);
         return `<div class="prow t-${t.id}" id="pillar-${t.id}" data-testid="pillar-row">
           <div class="pname">${esc(t.name)}</div>
-          <div class="pline"><span>${counts[t.id]} this week${latest ? ` \u00b7 you said ${latest}/5` : ''}</span>${sparkline(ratings)}</div>
-          <details><summary>What\u2019s underneath</summary><ul>${t.systems.map((x) => `<li>${esc(x.name)}</li>`).join('')}</ul></details>
+          <div class="pline"><span><span data-testid="pillar-count">${counts[t.id]} this week</span>${latest ? ` \u00b7 you said ${latest}/5` : ''}</span>${sparkline(ratings)}</div>
+          <details><summary>What\u2019s underneath</summary><ul>${t.systems.map((x) => `<li>${esc(x.name)} <span class="meta" data-testid="system-count">\u00b7 ${sysCounts[x.code]}</span></li>`).join('')}</ul></details>
         </div>`;
       }).join('')}</div>`;
   }

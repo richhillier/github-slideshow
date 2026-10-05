@@ -128,17 +128,63 @@
     return uses;
   }
 
-  /** Moments this week per pillar, including the energy check-in and the look-back. */
-  function pillarWeekCounts(summary, { energy = null, lookbackSaved = false } = {}) {
-    const counts = Object.fromEntries(TIERS.map((t) => [t.id, 0]));
-    for (const m of summary.moments) counts[pillarOf(m.type).id] += 1;
-    if (energy) counts['lead-yourself'] += 1;
-    if (lookbackSaved) counts['sustain-grow'] += 1;
+  /** This week per system: every moment that happened, Feedback follow-ups, the energy check-in and the look-back. */
+  function systemWeekCounts(summary, { energy = null, lookbackSaved = false } = {}) {
+    const counts = Object.fromEntries(Object.keys(SYS).map((k) => [k, 0]));
+    for (const m of summary.moments) counts[TYPES[m.type].sys] += 1;
+    counts.S6 += feedbackMoments(summary).length;
+    if (energy) counts.S0 += 1;
+    if (lookbackSaved) counts.S9 += 1;
     return counts;
+  }
+
+  /** This week per pillar: always the sum of its two systems, so the numbers add up. */
+  function pillarWeekCounts(summary, extras) {
+    const sys = systemWeekCounts(summary, extras);
+    return Object.fromEntries(TIERS.map((t) => [t.id, t.systems.reduce((n, s) => n + sys[s.code], 0)]));
   }
 
   /** Use-based depth, never calendar weeks: Performance prompts deepen once Feedback is a habit. */
   const promptDepth = (code, uses) => (code === 'S7' && (uses.S6 ?? 0) >= 3 ? 'deeper' : 'starter');
+
+  /**
+   * A deeper set adds to the starter card, never replaces its humanity: same focus line, at least one
+   * question about the person ('person') plus consequence or process questions ('process').
+   */
+  const isValidDeeper = (prep) => Boolean(prep.deeper
+    && prep.deeper.focus === prep.focus
+    && prep.deeper.questions.some((q) => q.kind === 'person')
+    && prep.deeper.questions.some((q) => q.kind === 'process'));
+
+  const DEEPER_META = 'Building on your feedback habit';
+
+  /** The card to show: the starter set, or the deeper set (with a quiet meta line) when depth allows. */
+  function prepCard(prep, depth) {
+    if (depth === 'deeper' && isValidDeeper(prep)) {
+      return { focus: prep.deeper.focus, questions: prep.deeper.questions.map((q) => q.text), meta: DEEPER_META };
+    }
+    return { focus: prep.focus, questions: prep.questions, meta: null };
+  }
+
+  /** The Claude prompt for a prep card. Questions only, and always one about the person. */
+  function prepPrompt(event, { orgBlock, depth = 'starter' }) {
+    const sys = SYS[TYPES[event.type].sys];
+    const deeper = depth === 'deeper'
+      ? '\nThis manager gives feedback regularly, so go one level deeper on consequence and process, but keep the person question.'
+      : '';
+    return `You write prep cards for LeadOS, a read-only Google Calendar add-on that helps first-time and frontline managers lead well in moments already on their calendar. A prep card is read in the two minutes before a meeting.
+
+Rules: ask questions; never write a script, talking points or words for the manager to say. Give one short focus line (under 15 words) and exactly three questions, each under 25 words, concrete to this moment. At least one question must be about the person, not the process: how they are, or what might be going on for them. Use the organisation's values or standards, in their own words, only where they genuinely apply. Don't invent facts about anyone. British English. No emoji.${deeper}
+
+${orgBlock}
+
+Moment: ${TYPES[event.type].label}, pillar ${pillarOf(event.type).name}, system ${sys.code} ${sys.name}.
+Calendar title: ${event.title}
+Time: Friday ${event.start}\u2013${event.end}. Attendees including the manager: ${event.n}.
+${event.context ? `From the manager's own earlier capture: ${event.context.replace(/<[^>]+>/g, '')}` : 'No earlier captures for this meeting.'}
+
+Reply with only JSON: {"focus": "...", "questions": ["...", "...", "..."]}`;
+  }
 
   /** This week's cohort numbers with the demo manager counted in. Aggregates only. */
   function hrSnapshot(weeks, managerCapturedCount) {
@@ -155,6 +201,7 @@
   globalThis.LeadOSLogic = {
     TIERS, TIER, SYS, TYPES, RATING, NEXT, WEEKDAYS,
     pillarOf, classify, momentStatus, nextMomentId, needsNextStep, isCaptured, rowStatus,
-    weekSummary, feedbackMoments, reflectionQuestions, systemUses, pillarWeekCounts, promptDepth, hrSnapshot, esc,
+    weekSummary, feedbackMoments, reflectionQuestions, systemUses, systemWeekCounts, pillarWeekCounts, promptDepth,
+    isValidDeeper, prepCard, prepPrompt, hrSnapshot, esc,
   };
 })();
