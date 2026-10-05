@@ -86,3 +86,14 @@ test('HR view never contains notes or meeting titles', () => {
   const body = page.split('<main>')[1].split('</main>')[0];
   for (const s of [...notes, ...titles]) assert.ok(!body.includes(s), `HR view leaked: ${s}`);
 });
+
+test('systems unlock by programme week (demo manager is in week 5)', async () => {
+  const { pillarProgress } = await import('../src/insights.js');
+  const { programmeWeek } = await import('../src/org.js');
+  seedDemo(dayKey());
+  const { week, tiers } = pillarProgress(1);
+  assert.equal(week, 5);
+  const systems = Object.fromEntries(tiers.flatMap((t) => t.systems).map((s) => [s.code, s.unlocked]));
+  assert.deepEqual(systems, { S0: true, S1: true, S2: true, S3: true, S4: true, S5: true, S6: true, S7: false, S8: false, S9: false });
+  assert.equal(programmeWeek('2026-10-05', '2026-11-09'), 6);
+});

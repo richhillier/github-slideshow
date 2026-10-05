@@ -34,12 +34,14 @@ Tests: `npm test`.
 | 3 | Prep card: 2–3 questions, never a script | `src/prep.js` |
 | 4 | Quick capture: two taps + optional note | Today page, `POST /api/capture/:id` |
 | 5 | Weekly look-back | `/lookback` |
-| 6 | Pillar view (five pillars, ten systems underneath) | `/pillars` |
+| 6 | Pillar view: the operating stack, five tiers and ten systems (S0–S9) | `/pillars` |
 | 7 | HR view stub: aggregates only, mocked cohort | `/hr` |
 
 **Moment rules.** An event becomes a moment from its title and attendee count only: difficult conversation (e.g. "performance", "concerns", "tough feedback", up to 4 people), 1:1 ("1:1", "1-1", "catch-up", or any 2-person event), planning block ("plan", "focus time", solo), team meeting ("team", "stand-up", "retro", 3+ people). Lunch, interviews, leave and the like are ignored. Rules and test cases: `src/moments.js`, `test/leados.test.js`.
 
 **Capture.** Tap 1: went well / mixed / hard. Tap 2: nothing / follow up / revisit. A note is optional and only the manager sees it. A "follow up" carries into the next prep card for a meeting with the same title.
+
+**The stack.** `config/org-context.json` holds the five tiers (Lead Yourself, Set the Standard, Develop People, Hold the Standard, Grow & Sustain) and their ten systems. Moments feed systems: 1:1s feed S5 1:1, team meetings S4 Communication, planning blocks S3 Planning, difficult conversations S6 Feedback; look-backs feed S9 Reflection. Systems switch on by programme week (S7 at week 6, S8 at week 10, S9 at week 12); the demo manager is in week 5.
 
 **Look-back.** Counts and the week's captures, three reflection questions drawn from them, then a 1–5 self-rating per pillar, one win, and one thing to try. The self-ratings are stored per week as the "manager-said" half of a later "manager-said vs. team-saw" comparison.
 
@@ -55,7 +57,6 @@ The manager's own notes from earlier moments with the same title are sent to Cla
 
 ## Placeholders to replace
 
-- **The five pillars and ten systems** in `config/org-context.json` are placeholders (Clarity, Coaching, Team, Standards, Self), because the PRD doesn't name them. Keep the ids, change names and summaries, and remap `momentTypes` if needed.
 - **Northwind Logistics** and its values are fictional demo content.
 - **HR cohort data** is mocked (23 managers) and mixed with live demo usage.
 

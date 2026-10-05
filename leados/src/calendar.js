@@ -1,7 +1,7 @@
 // Read-only Google Calendar connector (plain OAuth 2.0 web flow, no SDK).
 // The Calendar API `fields` mask means we never receive descriptions, locations, links or attendee identities.
 import { randomBytes } from 'node:crypto';
-import { getManager, setCalendarSource, upsertEvents } from './store.js';
+import { getManager, setCalendarSource, setProgrammeStart, upsertEvents } from './store.js';
 import { addDays, dayKey, londonTime, weekStart } from './time.js';
 
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
@@ -50,6 +50,7 @@ export async function handleCallback(managerId, { code, state }) {
   if (!state || !pendingStates.delete(state)) throw new Error('OAuth state mismatch');
   const tokens = await tokenRequest({ code, grant_type: 'authorization_code', redirect_uri: cfg().redirectUri });
   setCalendarSource(managerId, 'google', tokens);
+  setProgrammeStart(managerId, weekStart(dayKey()));
   return syncGoogle(managerId);
 }
 

@@ -1,7 +1,7 @@
 // Seeds one demo manager with a realistic fortnight: last week (mostly captured, with a look-back)
 // and this week (captured up to yesterday, today left open to try the loop).
 import { pathToFileURL } from 'node:url';
-import { ensureManager, clearManagerData, upsertEvents, saveCapture, saveLookback, setCalendarSource, savePrep } from './store.js';
+import { ensureManager, clearManagerData, upsertEvents, saveCapture, saveLookback, setCalendarSource, setProgrammeStart, savePrep } from './store.js';
 import { db } from './db.js';
 import { addDays, dayKey, londonTime, weekStart } from './time.js';
 import { libraryPrep } from './prep.js';
@@ -74,6 +74,8 @@ export function seedDemo(today = dayKey()) {
 
   const thisMonday = weekStart(today);
   const lastMonday = addDays(thisMonday, -7);
+  // Jordan is in week 5 of the programme: S7 Performance unlocks next week.
+  setProgrammeStart(m.id, addDays(thisMonday, -28), { overwrite: true });
   const todayStart = londonTime(today).toISOString();
 
   upsertEvents(m.id, [...weekEvents(lastMonday), ...weekEvents(thisMonday)]);
@@ -96,15 +98,15 @@ export function seedDemo(today = dayKey()) {
 
   // Five weeks of earlier self-ratings so the pillar trends have a shape.
   const history = [
-    { clarity: 2, coaching: 3, team: 3, standards: 1, self: 2 },
-    { clarity: 2, coaching: 3, team: 2, standards: 2, self: 2 },
-    { clarity: 3, coaching: 3, team: 2, standards: 2 },
-    { clarity: 3, coaching: 4, team: 3, standards: 2, self: 3 },
+    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 1, 'grow-sustain': 2 },
+    { 'lead-yourself': 2, 'set-standard': 2, 'develop-people': 3, 'hold-standard': 2, 'grow-sustain': 2 },
+    { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 3, 'hold-standard': 2 },
+    { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 2, 'grow-sustain': 3 },
   ];
   history.forEach((pillarScores, i) => saveLookback(m.id, addDays(lastMonday, -7 * (history.length - i)), { pillarScores, win: null, tryNext: null }));
 
   saveLookback(m.id, lastMonday, {
-    pillarScores: { clarity: 3, coaching: 4, team: 2, standards: 3, self: 3 },
+    pillarScores: { 'lead-yourself': 3, 'set-standard': 3, 'develop-people': 4, 'hold-standard': 3, 'grow-sustain': 3 },
     win: 'Had the attendance conversation with Dan instead of putting it off.',
     tryNext: 'End stand-ups at 15 minutes and give every retro action an owner.',
   });

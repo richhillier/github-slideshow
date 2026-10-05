@@ -1,6 +1,6 @@
 // Weekly look-back, pillar progress and HR aggregates. Everything here is computed from captures.
-import { momentTypes, pillars } from './org.js';
-import { momentsForWeek, getLookback, allLookbacks, allCapturedMoments, weeklyUsage, lookbackCount } from './store.js';
+import { momentTypes, pillars, lookbackSystem, programmeWeek } from './org.js';
+import { momentsForWeek, getLookback, allLookbacks, allCapturedMoments, weeklyUsage, lookbackCount, getManager } from './store.js';
 import { addDays, dayKey, weekStart } from './time.js';
 
 // ---- weekly look-back -----------------------------------------------------
@@ -37,7 +37,8 @@ export function reflectionQuestions(summary) {
   if (summary.openFollowUps.length) {
     qs.push(`You marked ${summary.openFollowUps.length} moment${summary.openFollowUps.length > 1 ? 's' : ''} to follow up. Which one matters most, and when will you do it?`);
   }
-  const quiet = pillars.filter((p) => p.id !== 'self' && summary.byPillar[p.id].moments === 0);
+  const momentPillars = new Set(Object.values(momentTypes).map((t) => t.pillar));
+  const quiet = pillars.filter((p) => momentPillars.has(p.id) && summary.byPillar[p.id].moments === 0);
   if (quiet.length) {
     qs.push(`Nothing this week touched ${quiet.map((p) => p.name).join(' or ')}. Is that a choice or a gap?`);
   }
@@ -53,28 +54,41 @@ export function reflectionQuestions(summary) {
 
 // ---- pillar view ----------------------------------------------------------
 
-/** Per pillar: moments captured, share that went well, and the manager's own weekly self-rating trend. */
+/**
+ * The operating stack for one manager: per tier, captured moments, share that went well and weekly
+ * self-ratings; per system, its unlock state for the manager's programme week and how often it was used.
+ */
 export function pillarProgress(managerId, weeks = 6) {
-  const thisMonday = weekStart(dayKey());
+  const today = dayKey();
+  const thisMonday = weekStart(today);
   const mondays = Array.from({ length: weeks }, (_, i) => addDays(thisMonday, -7 * (weeks - 1 - i)));
   const captured = allCapturedMoments(managerId);
-  const lookbacks = Object.fromEntries(allLookbacks(managerId).map((l) => [l.week_start, l.pillar_scores]));
+  const lookbackRows = allLookbacks(managerId);
+  const lookbacks = Object.fromEntries(lookbackRows.map((l) => [l.week_start, l.pillar_scores]));
+  const week = programmeWeek(getManager(managerId)?.started_on, today);
 
-  return pillars.map((p) => {
+  const tiers = pillars.map((p) => {
     const mine = captured.filter((c) => momentTypes[c.moment_type].pillar === p.id);
-    const wellShare = mine.length ? mine.filter((c) => c.rating === 'well').length / mine.length : null;
-    const systems = p.systems.map((s) => ({
-      ...s,
-      count: mine.filter((c) => momentTypes[c.moment_type].system === s.id).length,
-    }));
+    const systems = p.systems.map((s) => {
+      const unlockWeek = s.unlockWeek ?? 1;
+      const isLookback = lookbackSystem?.pillar === p.id && lookbackSystem?.system === s.id;
+      return {
+        ...s,
+        unlockWeek,
+        unlocked: week >= unlockWeek,
+        uses: isLookback ? lookbackRows.length : mine.filter((c) => momentTypes[c.moment_type].system === s.id).length,
+        unit: isLookback ? 'look-back' : 'moment',
+      };
+    });
     return {
       ...p,
       systems,
       captured: mine.length,
-      wellShare,
+      wellShare: mine.length ? mine.filter((c) => c.rating === 'well').length / mine.length : null,
       selfRatings: mondays.map((m) => ({ week: m, score: lookbacks[m]?.[p.id] ?? null })),
     };
   });
+  return { week, tiers };
 }
 
 // ---- HR view: aggregates only ---------------------------------------------

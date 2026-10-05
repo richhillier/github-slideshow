@@ -16,6 +16,10 @@ export function ensureManager({ id, name, team }) {
   return getManager(id);
 }
 
+export function setProgrammeStart(managerId, mondayKey, { overwrite = false } = {}) {
+  db.prepare(`UPDATE managers SET started_on = ? WHERE id = ?${overwrite ? '' : ' AND started_on IS NULL'}`).run(mondayKey, managerId);
+}
+
 export function setCalendarSource(managerId, source, tokens = null) {
   db.prepare('UPDATE managers SET calendar_source = ?, google_tokens = ?, connected_at = ? WHERE id = ?')
     .run(source, tokens ? JSON.stringify(tokens) : null, now(), managerId);

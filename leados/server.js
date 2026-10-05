@@ -110,7 +110,7 @@ app.post('/lookback', requireManager, (req, res) => {
 });
 
 app.get('/pillars', requireManager, (req, res) => {
-  html(res, pillarsPage({ manager: req.manager, progress: pillarProgress(req.manager.id), lookbacksDone: allLookbacks(req.manager.id).length }));
+  html(res, pillarsPage({ manager: req.manager, progress: pillarProgress(req.manager.id) }));
 });
 
 app.get('/hr', requireManager, (req, res) => html(res, hrPage({ manager: req.manager, overview: hrOverview() })));

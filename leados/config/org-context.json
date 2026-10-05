@@ -1,5 +1,5 @@
 {
-  "_note": "Prototype org-context file. The org (Northwind Logistics) is fictional demo data. The five pillars and ten systems below are PLACEHOLDERS until the real LeadOS framework is dropped in; keep the ids stable and change names/descriptions freely.",
+  "_note": "Prototype org-context file. The org (Northwind Logistics) is fictional demo data. The pillars and systems are the LeadOS leadership operating stack: five tiers, ten systems (S0-S9), each tier enabling the next. unlockWeek is the programme week a system switches on (default week 1).",
   "org": {
     "name": "Northwind Logistics",
     "size": 850,
@@ -7,9 +7,18 @@
     "timezone": "Europe/London"
   },
   "values": [
-    { "name": "Own it end to end", "meaning": "We follow work through to the customer outcome, not just our part of it." },
-    { "name": "Say the hard thing kindly", "meaning": "We raise problems early and directly, with care for the person." },
-    { "name": "Customers feel the difference", "meaning": "Decisions are judged by what changes for the customer." }
+    {
+      "name": "Own it end to end",
+      "meaning": "We follow work through to the customer outcome, not just our part of it."
+    },
+    {
+      "name": "Say the hard thing kindly",
+      "meaning": "We raise problems early and directly, with care for the person."
+    },
+    {
+      "name": "Customers feel the difference",
+      "meaning": "Decisions are judged by what changes for the customer."
+    }
   ],
   "managerStandards": [
     "Every direct report has a 1:1 at least every two weeks, and it is rarely cancelled.",
@@ -20,55 +29,123 @@
   ],
   "pillars": [
     {
-      "id": "clarity",
-      "name": "Clarity",
-      "summary": "The team knows where it is going and what matters most.",
+      "id": "lead-yourself",
+      "tier": "S0·S1",
+      "name": "Lead Yourself",
+      "summary": "Manage your own energy and make good decisions before you lead anyone else.",
       "systems": [
-        { "id": "direction", "name": "Direction setting" },
-        { "id": "priorities", "name": "Planning and priorities" }
+        {
+          "id": "energy",
+          "code": "S0",
+          "name": "Energy System"
+        },
+        {
+          "id": "decision",
+          "code": "S1",
+          "name": "Decision System"
+        }
       ]
     },
     {
-      "id": "coaching",
-      "name": "Coaching",
-      "summary": "Each person is growing and knows how they are doing.",
+      "id": "set-standard",
+      "tier": "S2·S3",
+      "name": "Set the Standard",
+      "summary": "The team knows what good looks like and what matters most.",
       "systems": [
-        { "id": "one-to-ones", "name": "1:1 rhythm" },
-        { "id": "feedback", "name": "Feedback" }
+        {
+          "id": "clarity",
+          "code": "S2",
+          "name": "Clarity System"
+        },
+        {
+          "id": "planning",
+          "code": "S3",
+          "name": "Planning System"
+        }
       ]
     },
     {
-      "id": "team",
-      "name": "Team",
-      "summary": "The team works well together and decides well.",
+      "id": "develop-people",
+      "tier": "S4·S5",
+      "name": "Develop People",
+      "summary": "Each person hears what they need to and grows through regular 1:1s.",
       "systems": [
-        { "id": "team-rhythm", "name": "Team rhythms" },
-        { "id": "decisions", "name": "Decision-making" }
+        {
+          "id": "communication",
+          "code": "S4",
+          "name": "Communication System"
+        },
+        {
+          "id": "one-to-one",
+          "code": "S5",
+          "name": "1:1 System"
+        }
       ]
     },
     {
-      "id": "standards",
-      "name": "Standards",
-      "summary": "Expectations are clear and gaps are dealt with early.",
+      "id": "hold-standard",
+      "tier": "S6·S7",
+      "name": "Hold the Standard",
+      "summary": "Feedback is timely and gaps in performance are dealt with early and fairly.",
       "systems": [
-        { "id": "expectations", "name": "Expectations" },
-        { "id": "hard-conversations", "name": "Difficult conversations" }
+        {
+          "id": "feedback",
+          "code": "S6",
+          "name": "Feedback System"
+        },
+        {
+          "id": "performance",
+          "code": "S7",
+          "name": "Performance System",
+          "unlockWeek": 6
+        }
       ]
     },
     {
-      "id": "self",
-      "name": "Self",
-      "summary": "The manager manages their own energy, time and learning.",
+      "id": "grow-sustain",
+      "tier": "S8·S9",
+      "name": "Grow & Sustain",
+      "summary": "The team keeps getting better and the manager keeps learning.",
       "systems": [
-        { "id": "focus", "name": "Energy and focus" },
-        { "id": "reflection", "name": "Reflection" }
+        {
+          "id": "growth",
+          "code": "S8",
+          "name": "Growth System",
+          "unlockWeek": 10
+        },
+        {
+          "id": "reflection",
+          "code": "S9",
+          "name": "Reflection System",
+          "unlockWeek": 12
+        }
       ]
     }
   ],
   "momentTypes": {
-    "one_to_one": { "label": "1:1", "pillar": "coaching", "system": "one-to-ones" },
-    "team_meeting": { "label": "Team meeting", "pillar": "team", "system": "team-rhythm" },
-    "planning": { "label": "Planning block", "pillar": "clarity", "system": "priorities" },
-    "difficult": { "label": "Difficult conversation", "pillar": "standards", "system": "hard-conversations" }
+    "one_to_one": {
+      "label": "1:1",
+      "pillar": "develop-people",
+      "system": "one-to-one"
+    },
+    "team_meeting": {
+      "label": "Team meeting",
+      "pillar": "develop-people",
+      "system": "communication"
+    },
+    "planning": {
+      "label": "Planning block",
+      "pillar": "set-standard",
+      "system": "planning"
+    },
+    "difficult": {
+      "label": "Difficult conversation",
+      "pillar": "hold-standard",
+      "system": "feedback"
+    }
+  },
+  "lookbackSystem": {
+    "pillar": "grow-sustain",
+    "system": "reflection"
   }
 }
