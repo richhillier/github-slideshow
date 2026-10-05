@@ -221,10 +221,13 @@ details[open] > summary::before { transform: rotate(90deg); }
 .week-list em { grid-column: 2; color: var(--muted); font-size: 12px; }
 .prow { border-left: 2px solid var(--tier); padding: 2px 0 2px 12px; display: grid; gap: 4px; scroll-margin-top: 8px; }
 .prow .pname { font-size: 15px; }
-.prow .pline { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.prow .pline { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.prow .pline > span { min-width: 0; flex: 1; }
+.prow .pline .spark { flex: none; }
 .prow ul { margin: 6px 0 0; padding-left: 16px; font-size: 13px; color: var(--ink-2); display: grid; gap: 2px; }
 .spark { display: block; }
-.spark polyline { fill: none; stroke: var(--tier); stroke-width: 1.5; }
+.spark line { stroke: var(--tier); stroke-width: 1.5; stroke-linecap: round; }
+.spark line.gap { stroke-dasharray: 2 3; opacity: .7; }
 .spark circle { fill: var(--tier); }
 .reads { padding: 4px 20px 0; }
 .reads p { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); }
@@ -259,7 +262,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .kpi b { font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .kpi span { color: var(--muted); }
 .kpi .target { color: var(--good); font-size: 12px; font-weight: 500; }
-.panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.panel { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
 .panel h2 { font-size: 16px; font-weight: 500; margin: 0; }
 .two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
 .chart-wrap { overflow-x: auto; }
@@ -270,6 +273,12 @@ details[open] > summary::before { transform: rotate(90deg); }
 .mixrow .bar { height: 10px; border-radius: 5px; background: var(--line-soft); overflow: hidden; }
 .mixrow .bar span { display: block; height: 100%; background: var(--tier); }
 .mixrow .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cohort-row { display: grid; grid-template-columns: 9rem minmax(0, 1fr) 2.5rem; gap: 10px; align-items: center; }
+.cohort-row .spark { width: 100%; max-width: 220px; height: auto; }
+.cohort-row .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.foot { margin: 0; font-size: 12px; color: var(--muted); }
+.muted-panel { background: var(--chrome); border-style: dashed; color: var(--ink-2); }
+.muted-panel h2 { color: var(--ink-2); }
 .never { margin: 0; padding-left: 20px; color: var(--ink-2); display: grid; gap: 4px; }
 
 /* ---- responsive ---- */
@@ -359,7 +368,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   const L = window.LeadOSLogic;
   const SC = window.LeadOSScenario;
   const { TIERS, TIER, SYS, TYPES, RATING, NEXT, WEEKDAYS, esc } = L;
-  const { NOW, TODAY_IDX, ORG, EVENTS, SEED_CAPTURES, BASE_USES, SELF_HISTORY, LAST_TRY, HR_WEEKS, PILOT_WEEK } = SC;
+  const { NOW, TODAY_IDX, ORG, EVENTS, SEED_CAPTURES, BASE_USES, SELF_HISTORY, LAST_TRY, HR_WEEKS, PILOT_WEEK, LOOKBACK_AT, COHORT_RATINGS } = SC;
   const H0 = 8, H1 = 18;
 
   // ------------------------------------------------------------ dates: the Friday of the current week
@@ -595,14 +604,14 @@ details[open] > summary::before { transform: rotate(90deg); }
       <div class="section"><details><summary>This week\u2019s moments</summary><ul class="week-list">${list}</ul></details></div>`;
   }
 
-  function sparkline(points, w = 72, h = 22) {
-    const n = points.length;
-    const xy = points.map((v, i) => (v == null ? null : [3 + (i * (w - 6)) / (n - 1), h - 3 - ((v - 1) / 4) * (h - 6)]));
-    const segs = []; let cur = [];
-    for (const p of xy) { if (p) cur.push(p); else if (cur.length) { segs.push(cur); cur = []; } }
-    if (cur.length) segs.push(cur);
-    const last = xy.filter(Boolean).at(-1);
-    return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${segs.filter((x) => x.length > 1).map((x) => `<polyline points="${x.map((p) => p.join(',')).join(' ')}"/>`).join('')}${last ? `<circle cx="${last[0]}" cy="${last[1]}" r="2.6"/>` : ''}</svg>`;
+  /** A small trend line, 1-5 scale. Missing weeks are bridged with a dashed segment (L.sparkSegments). */
+  function sparkline(values, w = 72, h = 22, label = '') {
+    const n = values.length;
+    const at = (i) => [3 + (i * (w - 6)) / (n - 1), h - 3 - ((values[i] - 1) / 4) * (h - 6)];
+    const { points, solid, dashed } = L.sparkSegments(values);
+    const seg = ([i, j], cls) => { const [x1, y1] = at(i), [x2, y2] = at(j); return `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`; };
+    const last = points.at(-1);
+    return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${label ? `role="img" aria-label="${esc(label)}"` : 'aria-hidden="true"'}>${solid.map((x) => seg(x, 'solid')).join('')}${dashed.map((x) => seg(x, 'gap')).join('')}${points.map((i) => `<circle cx="${at(i)[0]}" cy="${at(i)[1]}" r="${i === last ? 2.6 : 1.6}"/>`).join('')}</svg>`;
   }
 
   function pillarsCard() {
@@ -614,7 +623,11 @@ details[open] > summary::before { transform: rotate(90deg); }
         const latest = ratings.filter((r) => r != null).at(-1);
         return `<div class="prow t-${t.id}" id="pillar-${t.id}" data-testid="pillar-row">
           <div class="pname">${esc(t.name)}</div>
-          <div class="pline"><span><span data-testid="pillar-count">${counts[t.id]} this week</span>${latest ? ` \u00b7 you said ${latest}/5` : ''}</span>${sparkline(ratings)}</div>
+          <div class="pline"><span data-testid="pillar-line">${(() => {
+            const line = L.pillarCountLine(counts[t.id], L.pillarNextUp(t.id, todays, NOW, { lookbackAt: LOOKBACK_AT, lookbackSaved: S.lookback.saved }));
+            const head = line && counts[t.id] > 0 ? `<span data-testid="pillar-count">${line}</span>` : esc(line);
+            return [head, latest ? `you said ${latest}/5` : ''].filter(Boolean).join(' \u00b7 ');
+          })()}</span>${sparkline(ratings)}</div>
           <details><summary>What\u2019s underneath</summary><ul>${t.systems.map((x) => `<li>${esc(x.name)} <span class="meta" data-testid="system-count">\u00b7 ${sysCounts[x.code]}</span></li>`).join('')}</ul></details>
         </div>`;
       }).join('')}</div>`;
@@ -651,6 +664,28 @@ details[open] > summary::before { transform: rotate(90deg); }
   function renderAll() { renderChrome(); renderGrid(); renderPopover(); renderPanel(); renderView(); }
 
   // ------------------------------------------------------------ HR dashboard (aggregates only)
+  function cohortPanels() {
+    const extra = S.lookback.saved ? { week: PILOT_WEEK, scores: S.lookback.scores } : null;
+    const cohort = L.cohortSelfRatings(COHORT_RATINGS, { minRaters: 5, extra });
+    const rows = [...TIERS].reverse().map((t) => {
+      const pts = cohort[t.id];
+      const latest = pts.filter((p) => p.avg != null).at(-1);
+      return `<div class="cohort-row t-${t.id}" data-testid="cohort-line"><span>${esc(t.name)}</span>
+        ${sparkline(pts.map((p) => p.avg), 160, 30, `${t.name}: average self-rating by pilot week`)}
+        <span class="v">${latest ? latest.avg.toFixed(1) : '–'}</span></div>`;
+    }).join('');
+    return `<div class="two">
+      <section class="panel" aria-labelledby="h-said"><h2 id="h-said">How managers rate themselves</h2>
+        <div class="kicker" style="font-size:11px">Manager-said · average self-rating, 1 to 5, pilot weeks 1–${PILOT_WEEK}</div>
+        ${rows}
+        <p class="foot">Weeks where fewer than 5 managers rated a pillar are hidden; dashed lines bridge them.</p>
+      </section>
+      <section class="panel muted-panel" aria-labelledby="h-saw"><h2 id="h-saw">Team-saw</h2>
+        <p>Team-saw: coming next. Short pulse from each manager’s team, compared pillar by pillar.</p>
+      </section>
+    </div>`;
+  }
+
   function hrView() {
     const s = summary();
     const cur = L.hrSnapshot(HR_WEEKS, s.captured.length);
@@ -676,7 +711,7 @@ details[open] > summary::before { transform: rotate(90deg); }
         <div class="kpi"><b>${S.lookback.saved ? '58%' : '54%'}</b><span>did a Friday look-back</span></div>
       </div>
       <div class="two">
-        <section class="panel"><h2>Weekly usage</h2>
+        <section class="panel" aria-labelledby="h-usage"><h2 id="h-usage">Weekly usage</h2>
           <div class="legend"><span><i style="background:var(--line)"></i>Active managers</span><span><i style="background:var(--brand)"></i>At 3 or more moments</span></div>
           <div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Active managers and managers at 3 or more moments, weeks 1 to 5">
             ${[0, 12, 24].map((v) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-soft)"/><text x="${P.l - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('')}
@@ -684,12 +719,13 @@ details[open] > summary::before { transform: rotate(90deg); }
             <line x1="${P.l}" x2="${W - P.r}" y1="${y(total * target)}" y2="${y(total * target)}" stroke="var(--good)" stroke-dasharray="4 4"/>
             <text x="${W - P.r + 6}" y="${y(total * target) + 4}" style="fill:var(--good)">target</text></svg></div>
         </section>
-        <section class="panel"><h2>Where in the stack, this week</h2>
+        <section class="panel" aria-labelledby="h-mix"><h2 id="h-mix">Where in the stack, this week</h2>
           ${[...TIERS].reverse().map((t) => `<div class="mixrow t-${t.id}"><span>${esc(t.name)} <span class="meta">${t.systems.map((x) => x.code).join('\u00b7')}</span></span><span class="bar"><span style="width:${(mix[t.id] / 0.38) * 100}%"></span></span><span class="v">${pct(mix[t.id])}</span></div>`).join('')}
           <p style="margin:0;font-size:12px;color:var(--muted)">Share of moments across all managers. Moments feed one of ten systems underneath (S0 to S9).</p>
         </section>
       </div>
-      <section class="panel"><h2>What this view never shows</h2><ul class="never"><li>Any individual manager’s activity, ratings or notes</li><li>Meeting titles, descriptions or who attended</li><li>Breakdowns for groups smaller than 5 managers</li></ul></section>`;
+      ${cohortPanels()}
+      <section class="panel" aria-labelledby="h-never"><h2 id="h-never">What this view never shows</h2><ul class="never"><li>Any individual manager’s activity, ratings or notes</li><li>Any individual manager’s self-ratings</li><li>Meeting titles, descriptions or who attended</li><li>Breakdowns for groups smaller than 5 managers</li></ul></section>`;
   }
 
   // ------------------------------------------------------------ navigation

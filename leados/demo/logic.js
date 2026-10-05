@@ -109,7 +109,7 @@
     }
     if (lastTry) {
       const overran = summary.captured.filter((c) => /stand-up/i.test(c.title) && /ran over/i.test(c.note ?? '')).length;
-      const times = overran === 1 ? 'once' : `${overran} times`;
+      const times = overran === 1 ? 'once' : overran === 2 ? 'twice' : `${overran} times`;
       qs.push(`Last week you said you’d try: “${lastTry}”. ${overran ? `Stand-ups ran over ${times} this week. ` : ''}What got in the way?`);
     }
     if (summary.open.length) {
@@ -142,6 +142,53 @@
   function pillarWeekCounts(summary, extras) {
     const sys = systemWeekCounts(summary, extras);
     return Object.fromEntries(TIERS.map((t) => [t.id, t.systems.reduce((n, s) => n + sys[s.code], 0)]));
+  }
+
+  /** Short form of a calendar title for a one-line hint: "Career chat: Aisha" -> "Career chat". */
+  const shortTitle = (title) => title.split(':')[0].trim();
+
+  /** The next thing for a pillar still to come today (not yet started), or the Friday look-back. */
+  function pillarNextUp(pillarId, todayEvents, now, { lookbackAt = null, lookbackSaved = false } = {}) {
+    const options = todayEvents
+      .filter((e) => e.type && e.start > now && pillarOf(e.type).id === pillarId)
+      .map((e) => ({ title: shortTitle(e.title), time: e.start }));
+    if (pillarId === pillarOf('lookback').id && lookbackAt && !lookbackSaved && lookbackAt > now) {
+      options.push({ title: 'Look-back', time: lookbackAt });
+    }
+    options.sort((a, b) => (a.time < b.time ? -1 : 1));
+    return options[0] ?? null;
+  }
+
+  /** The count line under a pillar name. Never "0 this week". */
+  const pillarCountLine = (count, next) => (count > 0 ? `${count} this week` : next ? `Next: ${next.title} at ${next.time}` : '');
+
+  /**
+   * How to draw a trend with missing weeks: solid between neighbouring known weeks, dashed across a gap
+   * between known weeks, and nothing that dangles off the last known point.
+   */
+  function sparkSegments(values) {
+    const points = values.map((v, i) => (v == null ? null : i)).filter((i) => i !== null);
+    const solid = [], dashed = [];
+    for (let k = 1; k < points.length; k++) (points[k] - points[k - 1] === 1 ? solid : dashed).push([points[k - 1], points[k]]);
+    return { points, solid, dashed };
+  }
+
+  /**
+   * Cohort self-ratings per pillar per pilot week: the average, or null when fewer than minRaters rated
+   * it that week (so no individual can be singled out). extra adds the demo manager's saved look-back.
+   */
+  function cohortSelfRatings(weeks, { minRaters = 5, extra = null } = {}) {
+    const out = Object.fromEntries(TIERS.map((t) => [t.id, []]));
+    for (const w of weeks) {
+      for (const t of TIERS) {
+        const ratings = [...(w.ratings[t.id] ?? [])];
+        if (extra && extra.week === w.week && extra.scores[t.id] != null) ratings.push(extra.scores[t.id]);
+        const n = ratings.length;
+        const avg = n >= minRaters ? Math.round((ratings.reduce((a, b) => a + b, 0) / n) * 10) / 10 : null;
+        out[t.id].push({ week: w.week, avg, n });
+      }
+    }
+    return out;
   }
 
   /** Use-based depth, never calendar weeks: Performance prompts deepen once Feedback is a habit. */
@@ -202,6 +249,6 @@ Reply with only JSON: {"focus": "...", "questions": ["...", "...", "..."]}`;
     TIERS, TIER, SYS, TYPES, RATING, NEXT, WEEKDAYS,
     pillarOf, classify, momentStatus, nextMomentId, needsNextStep, isCaptured, rowStatus,
     weekSummary, feedbackMoments, reflectionQuestions, systemUses, systemWeekCounts, pillarWeekCounts, promptDepth,
-    isValidDeeper, prepCard, prepPrompt, hrSnapshot, esc,
+    isValidDeeper, prepCard, prepPrompt, pillarNextUp, pillarCountLine, sparkSegments, cohortSelfRatings, hrSnapshot, esc,
   };
 })();

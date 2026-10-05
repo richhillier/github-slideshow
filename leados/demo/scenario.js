@@ -130,6 +130,19 @@
     { w: 'Wk 4', active: 19, three: 14 }, { w: 'Wk 5', active: 19, three: 14 },
   ];
   const PILOT_WEEK = 5;
+  const LOOKBACK_AT = '15:30'; // the weekly wrap-up is when Jordan does the look-back
 
-  globalThis.LeadOSScenario = { TODAY_IDX, NOW, ORG, EVENTS, SEED_CAPTURES, BASE_USES, SELF_HISTORY, LAST_TRY, HR_WEEKS, PILOT_WEEK };
+  // Mocked cohort self-ratings (1-5) per pilot week, per pillar. Sustain & Grow starts thin: fewer than
+  // five managers rated it in weeks 1 and 2, so those weeks stay hidden in the HR view.
+  const RATERS = { 'lead-yourself': [14, 16, 15, 17, 18], 'set-standard': [14, 16, 15, 17, 18], 'develop-people': [15, 17, 16, 18, 19], 'hold-standard': [12, 14, 14, 16, 17], 'sustain-grow': [3, 4, 6, 8, 9] };
+  const START = { 'lead-yourself': 2.6, 'set-standard': 2.4, 'develop-people': 2.9, 'hold-standard': 2.0, 'sustain-grow': 2.5 };
+  let seed = 7;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const COHORT_RATINGS = [1, 2, 3, 4, 5].map((week) => ({
+    week,
+    ratings: Object.fromEntries(Object.keys(RATERS).map((id) => [id, Array.from({ length: RATERS[id][week - 1] }, () =>
+      Math.min(5, Math.max(1, Math.round(START[id] + (week - 1) * 0.18 + (rand() - 0.5) * 2))))])),
+  }));
+
+  globalThis.LeadOSScenario = { TODAY_IDX, NOW, ORG, EVENTS, SEED_CAPTURES, BASE_USES, SELF_HISTORY, LAST_TRY, HR_WEEKS, PILOT_WEEK, LOOKBACK_AT, COHORT_RATINGS };
 })();
